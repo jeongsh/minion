@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState } from "react";
+import { retainCommentAncestors } from "@/packages/contracts/src/community-comment-thread";
 import type { CommunityCommentItem } from "@/lib/community/types";
 import type { MiniconItem } from "@/lib/minicons/types";
 
@@ -29,9 +30,11 @@ export function CommentStateProvider({ comments: initial, count, postId, childre
   }
   const merged = new Map(initial.map(comment => [comment.id, comment]));
   for (const [id, entry] of Object.entries(entries)) merged.set(id, entry.comment);
-  const all = [...merged.values()];
-  const parentIds = new Set(all.filter(comment => !comment.deletedAt).map(comment => comment.parentId));
-  const comments = all.filter(comment => !comment.deletedAt || parentIds.has(comment.id));
+  const comments = retainCommentAncestors(
+    [...merged.values()],
+    comment => comment.parentId,
+    comment => Boolean(comment.deletedAt),
+  );
   const pendingIds = new Set(Object.entries(entries).filter(([, entry]) => entry.pending).map(([id]) => id));
   const delta = Object.entries(entries).reduce((sum, [id, entry]) => {
     const original = initial.find(comment => comment.id === id);

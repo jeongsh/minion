@@ -3,6 +3,7 @@
 import { ChevronDown, ChevronUp, Trash2, UserRound } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { MAX_COMMENT_REPLY_DEPTH } from "@/packages/contracts/src/community-comment-thread";
 
 import { BlindedContent } from "@/components/community/blinded-content";
 import { AuthorMenu } from "@/components/community/author-menu";
@@ -42,8 +43,6 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
   const targetComment = comments.find(comment => comment.id === targetId);
   const targetAvailable = Boolean(targetComment);
   const targetDeleted = Boolean(targetComment?.deletedAt || (targetId && deletedCommentIds.includes(targetId)));
-  const targetParentId = targetComment?.parentId;
-  const targetExpanded = !targetParentId || !collapsedReplies.has(targetParentId);
   useEffect(() => {
     const followComment = (event?: Event) => {
       const hashId = window.location.hash.startsWith("#comment-") ? window.location.hash.slice(9) : null;
@@ -65,11 +64,13 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
       } else {
         refreshRequestedFor.current = null;
       }
-      if (target?.parentId) setCollapsedReplies(current => {
-        if (!current.has(target.parentId!)) return current;
+      const parentId = target?.parentId;
+      if (parentId) setCollapsedReplies(current => {
         const next = new Set(current);
-        next.delete(target.parentId!);
-        return next;
+        next.delete(parentId);
+        const grandparentId = comments.find(comment => comment.id === parentId)?.parentId;
+        if (grandparentId) next.delete(grandparentId);
+        return next.size === current.size ? current : next;
       });
     };
     followComment();
@@ -107,7 +108,7 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
       window.cancelAnimationFrame(frame);
       highlight?.cancel();
     };
-  }, [targetId, targetAvailable, targetDeleted, targetExpanded, commentTarget.revision, waitingForRefresh, showToast]);
+  }, [targetId, targetAvailable, targetDeleted, commentTarget.revision, waitingForRefresh, showToast]);
   const pendingParents = comments.filter(comment => comment.parentId && commentState?.pendingIds.has(comment.id)).map(comment => comment.parentId!);
   if (pendingParents.some(id => collapsedReplies.has(id))) {
     setCollapsedReplies(previous => new Set([...previous].filter(id => !pendingParents.includes(id))));
@@ -257,10 +258,10 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
     <p className="mt-0.5 whitespace-pre-wrap break-words text-sm leading-5 text-[var(--ui-text)] [overflow-wrap:anywhere]"><span data-comment-text="">{comment.content}</span></p>
   );
 
-  const item = (comment: CommunityCommentItem, reply = false, continued = false, best = false) => (
-    <div key={comment.id} id={`comment-${comment.id}`} tabIndex={-1} aria-busy={commentState?.pendingIds.has(comment.id) || undefined} className={`relative grid min-h-[78px] min-w-0 scroll-mt-24 gap-4 outline-none ${reply ? "grid-cols-[24px_minmax(0,1fr)]" : "grid-cols-[36px_minmax(0,1fr)]"}`}>
-      {continued ? <span className="absolute bottom-0 left-[18px] top-10 border-l border-[var(--ui-border)]" aria-hidden="true" /> : null}
-      {authorMenu(comment, commentAvatar(comment, reply))}
+  const item = (comment: CommunityCommentItem, depth: number, continued: boolean, best: boolean) => (
+    <div id={`comment-${comment.id}`} tabIndex={-1} aria-busy={commentState?.pendingIds.has(comment.id) || undefined} className={`relative grid min-h-[78px] min-w-0 scroll-mt-24 gap-4 outline-none ${depth > 0 ? "grid-cols-[24px_minmax(0,1fr)]" : "grid-cols-[36px_minmax(0,1fr)]"}`}>
+      {continued ? <span className={`absolute bottom-0 top-10 border-l border-[var(--ui-border)] ${depth > 0 ? "left-3" : "left-[18px]"}`} aria-hidden="true" /> : null}
+      {authorMenu(comment, commentAvatar(comment, depth > 0))}
       <div className="relative min-w-0">
         <div className="flex h-5 min-w-0 items-center gap-1 pr-8">
           {best ? <span className="inline-flex shrink-0 items-center rounded-full bg-[var(--palette-green-butter-main)] px-1.5 py-0.5 text-xs font-medium leading-none text-[#071a11]">BEST</span> : null}
@@ -292,51 +293,56 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
         )}
         <div className={`-ml-2 mt-1 flex h-8 items-center gap-2 ${comment.id.startsWith("pending:") ? "pointer-events-none opacity-50" : ""}`} inert={comment.id.startsWith("pending:")}>
           <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
-          {!reply ? <button type="button" onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="h-8 rounded-[var(--ui-control-radius)] px-2 text-[13px] font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">답글</button> : null}
+          {depth < MAX_COMMENT_REPLY_DEPTH ? <button type="button" aria-expanded={replyTo === comment.id} onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="h-8 rounded-[var(--ui-control-radius)] px-2 text-[13px] font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">답글</button> : null}
           {guestEditButton(comment)}
         </div>
-        {replyTo === comment.id ? <div className="mt-2"><CommentForm postId={comment.postId} parentId={comment.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} miniconPacks={miniconPacks} onSubmitted={() => setReplyTo(null)} /></div> : null}
+        {replyTo === comment.id ? <div className="mt-2"><CommentForm postId={comment.postId} parentId={comment.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} miniconPacks={miniconPacks} onSubmitted={() => setReplyTo(current => current === comment.id ? null : current)} /></div> : null}
       </div>
     </div>
   );
 
+  const thread = (comment: CommunityCommentItem, depth: number, best = false) => {
+    const replies = depth < MAX_COMMENT_REPLY_DEPTH ? repliesByParent.get(comment.id) ?? [] : [];
+    const expanded = !collapsedReplies.has(comment.id);
+    const stemOffset = depth === 0 ? "left-[18px]" : "left-3";
+
+    return (
+      <>
+        {comment.deletedAt ? deletedItem(comment) : item(comment, depth, replies.length > 0, best)}
+        {replies.length > 0 ? (
+          <>
+            {expanded ? (
+              <ul>
+                {replies.map(reply => (
+                  <li key={reply.id} className="relative min-h-[90px]">
+                    <span className={`absolute bottom-0 top-0 border-l border-[var(--ui-border)] ${stemOffset}`} aria-hidden="true" />
+                    <span className={`absolute top-0 h-6 rounded-bl-[16px] border-b border-l border-[var(--ui-border)] ${stemOffset} ${depth === 0 ? "w-[30px]" : "w-5"}`} aria-hidden="true" />
+                    <div className={`pt-3 ${depth === 0 ? "ml-12" : "ml-8"}`}>
+                      {thread(reply, depth + 1)}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <div className="relative h-[52px]">
+              <span className={`absolute top-0 h-[30px] w-[18px] rounded-bl-[16px] border-b border-l border-[var(--ui-border)] ${stemOffset}`} aria-hidden="true" />
+              <button type="button" onClick={() => toggleReplies(comment.id)} aria-expanded={expanded} className={`absolute top-3 inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)] ${depth === 0 ? "left-9" : "left-[30px]"}`}>
+                {expanded ? <>답글 숨기기 <ChevronUp size={18} strokeWidth={2} /></> : <>답글 {replies.length}개 <ChevronDown size={18} strokeWidth={2} /></>}
+              </button>
+            </div>
+          </>
+        ) : null}
+      </>
+    );
+  };
+
   return (
     <ul className="min-w-0 px-[14px] md:px-8">
       {orderedRoots.map((comment, index) => {
-        const replyItems = repliesByParent.get(comment.id) ?? [];
-        const expanded = !collapsedReplies.has(comment.id) || replyItems.some(reply => commentState?.pendingIds.has(reply.id));
-        const best = bestCommentIds.has(comment.id);
         const firstRegular = bestComments.length > 0 && index === bestComments.length;
         return (
           <li key={comment.id} className={`mb-4 ${firstRegular ? "border-t border-[var(--ui-border)] pt-5" : ""}`}>
-            {comment.deletedAt ? deletedItem(comment) : item(comment, false, replyItems.length > 0, best)}
-            {replyItems.length > 0 && !expanded ? (
-              <div className="relative h-[52px]">
-                <span className="absolute left-[18px] top-0 h-[30px] w-[18px] rounded-bl-[16px] border-b border-l border-[var(--ui-border)]" aria-hidden="true" />
-                <button type="button" onClick={() => toggleReplies(comment.id)} aria-expanded="false" className="absolute left-9 top-3 inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">
-                  답글 {replyItems.length}개 <ChevronDown size={18} strokeWidth={2} />
-                </button>
-              </div>
-            ) : null}
-            {replyItems.length > 0 && expanded ? (
-              <div>
-                {replyItems.map((reply) => (
-                  <div key={reply.id} className="relative min-h-[90px]">
-                    <span className="absolute bottom-0 left-[18px] top-0 border-l border-[var(--ui-border)]" aria-hidden="true" />
-                    <span className="absolute left-[18px] top-0 h-6 w-[30px] rounded-bl-[16px] border-b border-l border-[var(--ui-border)]" aria-hidden="true" />
-                    <div className="ml-12 pt-3">
-                      {item(reply, true)}
-                    </div>
-                  </div>
-                ))}
-                <div className="relative h-[52px]">
-                  <span className="absolute left-[18px] top-0 h-[30px] w-[18px] rounded-bl-[16px] border-b border-l border-[var(--ui-border)]" aria-hidden="true" />
-                  <button type="button" onClick={() => toggleReplies(comment.id)} aria-expanded="true" className="absolute left-9 top-3 inline-flex h-10 items-center gap-1.5 rounded-full px-4 text-sm font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">
-                    답글 숨기기 <ChevronUp size={18} strokeWidth={2} />
-                  </button>
-                </div>
-              </div>
-            ) : null}
+            {thread(comment, 0, bestCommentIds.has(comment.id))}
           </li>
         );
       })}

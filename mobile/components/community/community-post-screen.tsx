@@ -36,6 +36,7 @@ import { CommunityPostContent } from './community-post-content';
 import { CommunityAuthor, GuestAvatar } from './community-author';
 import { COMMENT_MAX_LENGTH, displayAuthor, formatCommunityDate, type CommunityScope } from './community-utils';
 import { MiniconPicker, rememberMiniconUse } from './minicon-picker';
+import { MAX_COMMENT_REPLY_DEPTH } from '../../../packages/contracts/src/community-comment-thread';
 
 type ReportTarget = { target: 'post' | 'comment'; targetId: string };
 
@@ -91,7 +92,12 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   }, [roots]);
   const replies = useMemo(() => {
     const map = new Map<string, MobileCommunityComment[]>();
-    data?.comments.filter((item) => item.parentId).forEach((item) => map.set(item.parentId!, [...(map.get(item.parentId!) ?? []), item]));
+    for (const item of data?.comments ?? []) {
+      if (!item.parentId) continue;
+      const children = map.get(item.parentId) ?? [];
+      children.push(item);
+      map.set(item.parentId, children);
+    }
     return map;
   }, [data?.comments]);
   const toggleReplies = (commentId: string) => {
@@ -105,6 +111,17 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   const refreshCommunityData = () => {
     void invalidateApiCache('/api/mobile/v1/community/posts');
     void invalidateApiCache('/api/mobile/v1/home');
+  };
+  const finishReply = (target: MobileCommunityComment | null) => {
+    if (target) {
+      setCollapsedReplies(current => {
+        const next = new Set(current);
+        next.delete(target.id);
+        if (target.parentId) next.delete(target.parentId);
+        return next.size === current.size ? current : next;
+      });
+    }
+    setReplyTo(current => current === target ? null : current);
   };
 
   const react = async (target: 'post' | 'comment', targetId: string, kind: 'honor' | 'dislike') => {
@@ -138,7 +155,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
     try {
       await mutateMobileApi<MobileCommunityCommentMutationDto>('/api/mobile/v1/community/comments', 'POST', { content, parentId: replyTo?.id ?? null, postId: data.id });
       showToast(replyTo ? '답글 등록 완료' : '댓글 등록 완료', 'success');
-      setComment(''); setReplyTo(null); setMiniconOpen(false); refreshCommunityData();
+      setComment(''); finishReply(replyTo); setMiniconOpen(false); refreshCommunityData();
     } catch (caught) { showToast(caught instanceof Error ? caught.message : '댓글을 등록하지 못했습니다. 다시 시도해 주세요.', 'error'); }
     finally { setSubmitting(false); }
   };
@@ -155,7 +172,7 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
         postId: data.id,
       });
       items.forEach((item) => { void rememberMiniconUse(item.id); });
-      setReplyTo(null);
+      finishReply(replyTo);
       showToast(replyTo ? '답글 등록 완료' : '댓글 등록 완료', 'success');
       refreshCommunityData();
     } catch (caught) {
@@ -209,6 +226,46 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
   if (!data) return <FocusState><ErrorState onRetry={refresh} /></FocusState>;
 
   const title = data.isBlinded ? (data.blindedSource === 'ai' ? '정화봇이 숨긴 게시글입니다.' : '블라인드된 게시글입니다.') : data.title;
+  const renderThread = (item: MobileCommunityComment, depth: number): React.ReactNode => {
+    const children = depth < MAX_COMMENT_REPLY_DEPTH ? replies.get(item.id) ?? [] : [];
+    const expanded = !collapsedReplies.has(item.id);
+    const stemLeft = depth === 0 ? 18 : 12;
+    return (
+      <>
+        <CommentItem
+          accent={accent}
+          best={depth === 0 && item.isBest}
+          comment={item}
+          continued={children.length > 0}
+          onDelete={refreshCommunityData}
+          onReact={react}
+          onReply={depth < MAX_COMMENT_REPLY_DEPTH ? setReplyTo : undefined}
+          onReport={startReport}
+          reply={depth > 0}
+        />
+        {children.length > 0 ? (
+          <>
+            {expanded ? children.map(child => (
+              <View key={child.id} style={styles.replyThreadRow}>
+                <View style={[styles.replyThreadStem, { backgroundColor: theme.border, left: stemLeft }]} />
+                <View style={[styles.replyThreadElbow, { borderColor: theme.border, left: stemLeft, width: depth === 0 ? 30 : 20 }]} />
+                <View style={[styles.replyThreadContent, { marginLeft: depth === 0 ? 48 : 32 }]}>
+                  {renderThread(child, depth + 1)}
+                </View>
+              </View>
+            )) : null}
+            <View style={styles.threadToggleRow}>
+              <View style={[styles.threadConnection, { borderColor: theme.border, left: stemLeft }]} />
+              <Pressable accessibilityRole="button" accessibilityState={{ expanded }} onPress={() => toggleReplies(item.id)} style={[styles.threadToggleButton, { left: stemLeft + 18 }]}>
+                <Text style={{ color: theme.text, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>{expanded ? '답글 숨기기' : `답글 ${children.length}개`}</Text>
+                {expanded ? <ChevronUp color={theme.text} size={18} strokeWidth={2} /> : <ChevronDown color={theme.text} size={18} strokeWidth={2} />}
+              </Pressable>
+            </View>
+          </>
+        ) : null}
+      </>
+    );
+  };
   return (
     <KeyboardAwareView style={[styles.root, { backgroundColor: theme.pageBackground }]}>
       {({ bottomInset }) => <View style={styles.root}>
@@ -237,27 +294,10 @@ export function CommunityPostScreen({ scope = 'hub' }: { scope?: CommunityScope 
           </View>
           <View style={styles.commentTitle}><Text style={{ color: theme.ink, ...fonts.bold, fontSize: 15, lineHeight: 22.5 }}>댓글</Text><Text style={{ color: accent, ...fonts.medium, fontSize: 13, lineHeight: 19.5 }}>{data.commentCount}</Text></View>
           <View style={styles.comments}>{orderedRoots.map((item, index) => {
-            const itemReplies = replies.get(item.id) ?? [];
-            const repliesExpanded = !collapsedReplies.has(item.id);
             const firstRegular = !item.isBest && index > 0 && orderedRoots[index - 1]?.isBest;
             return (
               <View key={item.id} style={[styles.commentThread, firstRegular ? { borderTopColor: theme.border, borderTopWidth: 1, paddingTop: 20 } : null]}>
-                <CommentItem accent={accent} best={item.isBest} comment={item} continued={itemReplies.length > 0} onDelete={refreshCommunityData} onReact={react} onReply={setReplyTo} onReport={startReport} />
-                {itemReplies.length > 0 && !repliesExpanded ? (
-                  <View style={styles.threadToggleRow}>
-                    <View style={[styles.threadConnection, { borderColor: theme.border }]} />
-                    <Pressable accessibilityState={{ expanded: false }} onPress={() => toggleReplies(item.id)} style={styles.threadToggleButton}><Text style={{ color: theme.text, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>답글 {itemReplies.length}개</Text><ChevronDown color={theme.text} size={18} strokeWidth={2} /></Pressable>
-                  </View>
-                ) : null}
-                {itemReplies.length > 0 && repliesExpanded ? (
-                  <View>
-                    {itemReplies.map((reply) => <View key={reply.id} style={styles.replyThreadRow}><View style={[styles.replyThreadStem, { backgroundColor: theme.border }]} /><View style={[styles.replyThreadElbow, { borderColor: theme.border }]} /><View style={styles.replyThreadContent}><CommentItem accent={accent} comment={reply} onDelete={refreshCommunityData} onReact={react} onReport={startReport} reply /></View></View>)}
-                    <View style={styles.threadToggleRow}>
-                      <View style={[styles.threadConnection, { borderColor: theme.border }]} />
-                      <Pressable accessibilityState={{ expanded: true }} onPress={() => toggleReplies(item.id)} style={styles.threadToggleButton}><Text style={{ color: theme.text, ...fonts.medium, fontSize: 14, lineHeight: 20 }}>답글 숨기기</Text><ChevronUp color={theme.text} size={18} strokeWidth={2} /></Pressable>
-                    </View>
-                  </View>
-                ) : null}
+                {renderThread(item, 0)}
               </View>
             );
           })}</View>
@@ -388,7 +428,7 @@ function CommentItem({ accent, best = false, comment, continued = false, onDelet
   const remove = () => Alert.alert('댓글 삭제', '이 댓글을 삭제할까요?', [{ text: '취소', style: 'cancel' }, { text: '삭제', style: 'destructive', onPress: () => void mutateMobileApi<MobileCommunityActionDto>(`/api/mobile/v1/community/comments/${comment.id}`, 'DELETE').then((result) => { showToast(result.message, 'success'); onDelete(); }).catch((caught) => showToast(caught instanceof Error ? caught.message : '댓글을 삭제하지 못했습니다. 다시 시도해 주세요.', 'error')) }]);
   return (
     <View style={styles.commentItem}>
-      {continued ? <View style={[styles.commentContinuation, { backgroundColor: theme.border }]} /> : null}
+      {continued ? <View style={[styles.commentContinuation, { backgroundColor: theme.border }, reply ? { left: 12 } : null]} /> : null}
       <CommunityAuthor author={comment.author} customTrigger={<CommentAvatar author={comment.author} reply={reply} />} evidence={{ target: 'comment', targetId: comment.id }} onBlocked={onDelete} />
       <View style={styles.commentInner}>
         <View style={styles.commentTop}>
@@ -420,7 +460,7 @@ function CommentItem({ accent, best = false, comment, continued = false, onDelet
         )}
         <View style={styles.commentLinks}>
           <ReactionButtons accent={accent} item={comment} onReact={onReact} small target="comment" />
-          {!reply && !comment.isDeleted && onReply ? <Pressable onPress={() => onReply(comment)}><Text style={commentLinkText(theme.muted, fonts.medium)}>답글</Text></Pressable> : null}
+          {!comment.isDeleted && onReply ? <Pressable accessibilityRole="button" onPress={() => onReply(comment)}><Text style={commentLinkText(theme.muted, fonts.medium)}>답글</Text></Pressable> : null}
           {comment.permissions.canEdit && !comment.isDeleted ? <Pressable onPress={() => setEditing(true)}><Text style={commentLinkText(theme.muted, fonts.medium)}>수정</Text></Pressable> : null}
         </View>
       </View>

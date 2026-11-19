@@ -3,6 +3,7 @@
 // 쓰기는 항상 author_id/user_id 를 getCurrentUser().id 로 채운다(서버 액션에서 사용).
 
 import { cache } from "react";
+import { MAX_COMMENT_REPLY_DEPTH, retainCommentAncestors } from "@/packages/contracts/src/community-comment-thread";
 import { canQuerySupabase, createSupabaseServerClient } from "@/lib/supabase/server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { extractPlainText, extractThumbnail } from "@/lib/community/extract-thumbnail";
@@ -453,11 +454,10 @@ export const getPostCommentThread = cache(async function getPostCommentThread(
   const rows = (data as CommentRow[]).filter(
     (row) => !isBlockedAuthor(row, blocked),
   );
-  const parentIdsWithReplies = new Set(
-    rows.flatMap((row) => (row.parent_id && !row.deleted_at ? [row.parent_id] : [])),
-  );
-  const visible = rows.filter(
-    (row) => !row.deleted_at || (!row.parent_id && parentIdsWithReplies.has(row.id)),
+  const visible = retainCommentAncestors(
+    rows,
+    row => row.parent_id,
+    row => Boolean(row.deleted_at),
   );
   return {
     comments: await mapCommentsWithAuthors(visible),
@@ -653,6 +653,26 @@ export async function deletePost(postId: string): Promise<void> {
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", postId);
   if (error) throw error;
+}
+
+export async function commentReplyError(postId: string, parentId: string | null | undefined): Promise<string | null> {
+  if (!parentId) return null;
+
+  const client = createSupabaseServerClient();
+  let ancestorId: string | null = parentId;
+  for (let depth = 0; ancestorId && depth < MAX_COMMENT_REPLY_DEPTH; depth++) {
+    const lookupId: string = ancestorId;
+    const { data, error } = await client.from("community_comments")
+      .select("parent_id, deleted_at")
+      .eq("id", lookupId)
+      .eq("post_id", postId)
+      .maybeSingle<{ parent_id: string | null; deleted_at: string | null }>();
+    if (error) throw error;
+    if (!data || (depth === 0 && data.deleted_at)) return "답글을 작성할 댓글을 찾을 수 없습니다.";
+    ancestorId = data.parent_id;
+  }
+
+  return ancestorId ? "답글은 게시글 댓글에서 두 단계까지 작성할 수 있습니다." : null;
 }
 
 /** 댓글 생성. comment_count 증가도 함께 처리. */
