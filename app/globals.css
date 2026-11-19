@@ -185,6 +185,10 @@ body:has([data-tournament-cached="true"]:not([hidden] *)) [data-testid="navigati
   top: var(--shell-mobile-header-offset, 56px);
 }
 
+.team-surface {
+  --fan-desktop-nav-height: 51px;
+}
+
 .hub-local-navigation {
   top: var(--shell-mobile-header-offset, 56px);
 }
@@ -206,7 +210,7 @@ body:has([data-tournament-cached="true"]:not([hidden] *)) [data-testid="navigati
 
 @media (min-width: 768px) {
   .fan-local-navigation {
-    top: 64px;
+    top: var(--ui-header-height);
   }
 
   .hub-local-navigation {
