@@ -177,7 +177,7 @@ export function useMatchActivity(
       matchEvent: notification.matchEvent,
     });
   }, [preferences.inAppEnabled, showToast]);
-  const communityNotifications = useCommunityNotifications(notificationTopic, presentNotification);
+  const communityNotifications = useCommunityNotifications(notificationTopic);
   const notifications = useMemo(
     () => [...communityNotifications.notifications, ...localNotifications]
       .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())

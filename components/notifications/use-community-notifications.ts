@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { usePathname } from "next/navigation";
 
 import type { AppNotification } from "@/lib/notifications";
 
@@ -19,25 +18,15 @@ export function isRemoteNotificationId(id: string) {
   return id.startsWith("community:") || id.startsWith("content:");
 }
 
-export function useCommunityNotifications(topic: string | null, onNewNotification?: (notification: AppNotification) => void) {
+export function useCommunityNotifications(topic: string | null) {
   const identityScope = topic ?? "";
   const visible = useSyncExternalStore(subscribeVisibility, isVisible, serverVisibility);
-  const pathname = usePathname();
-  const communityPage = pathname === "/community" || pathname.startsWith("/community/") || /^\/fan\/[^/]+\/community(?:\/|$)/.test(pathname);
   const [state, setState] = useState<{ identityScope: string; notifications: AppNotification[] }>({
     identityScope: "",
     notifications: [],
   });
-  const knownNotificationIds = useRef<{ identityScope: string; ids: Set<string> } | null>(null);
-  const onNewNotificationRef = useRef(onNewNotification);
-  const inCommunity = useRef(communityPage);
   const mutations = useRef({ revision: 0, pending: 0 });
   const notifications = state.identityScope === identityScope ? state.notifications : [];
-
-  useEffect(() => {
-    onNewNotificationRef.current = onNewNotification;
-    inCommunity.current = communityPage;
-  }, [onNewNotification, communityPage]);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     if (mutations.current.pending > 0 || signal?.aborted) return;
@@ -48,17 +37,6 @@ export function useCommunityNotifications(topic: string | null, onNewNotificatio
     // A response started before a read/delete must not restore stale inbox state.
     if (signal?.aborted || mutations.current.revision !== revision) return;
     const next = Array.isArray(body.notifications) ? body.notifications : [];
-    const previous = knownNotificationIds.current;
-    knownNotificationIds.current = { identityScope, ids: new Set(next.map((notification) => notification.id)) };
-    if (previous?.identityScope === identityScope) {
-      for (const notification of next) {
-        const shouldPresent = notification.kind === "team_video" || notification.kind === "team_social"
-          || (inCommunity.current && Boolean(notification.activityKind));
-        if (shouldPresent && !notification.readAt && !previous.ids.has(notification.id)) {
-          onNewNotificationRef.current?.(notification);
-        }
-      }
-    }
     setState({ identityScope, notifications: next });
   }, [identityScope]);
 
