@@ -2,6 +2,7 @@ import { createElement, Fragment, type ReactNode } from "react";
 
 import { PollVoter, type PollOption } from "@/components/community/poll-voter";
 import { ReadOnlyEmbed } from "./read-only-embed";
+import { PostVideoPlayback } from "./post-video-playback";
 import { contentColor, contentDocument, contentFontSize, contentUrl, imageLayoutStyle, youtubeEmbedUrl, type ContentNode } from "@/lib/community/read-only-content";
 
 function textAttribute(value: unknown): string | undefined {
@@ -67,7 +68,7 @@ function renderNode(node: ContentNode, key: string, depth = 0): ReactNode {
     }
     case "video": {
       const src = contentUrl(attrs.src);
-      return src ? <video key={key} src={src} controls playsInline preload="metadata" className="my-4 max-h-[640px] w-full rounded" /> : null;
+      return src ? <video key={key} src={src} controls playsInline preload="metadata" className="my-4 h-auto max-h-[640px] w-auto max-w-full rounded" /> : null;
     }
     case "embed": {
       const url = contentUrl(attrs.url);
@@ -83,10 +84,9 @@ function renderNode(node: ContentNode, key: string, depth = 0): ReactNode {
   }
 }
 
-// Only polls and social embeds need browser code; reading a stored document
-// must not download or initialize a full editing runtime.
+// Render document nodes on the server without loading an editing runtime.
 export function PostContentViewer({ content }: { content: string }) {
   const document = contentDocument(content);
   if (!document) return <div className="whitespace-pre-wrap text-base leading-7">{content}</div>;
-  return <div><div translate="no" className="tiptap ProseMirror community-prose max-w-none text-base leading-7">{renderNode(document, "doc")}</div></div>;
+  return <PostVideoPlayback><div translate="no" className="tiptap ProseMirror community-prose max-w-none text-base leading-7">{renderNode(document, "doc")}</div></PostVideoPlayback>;
 }
