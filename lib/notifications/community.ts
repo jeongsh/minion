@@ -10,6 +10,7 @@ import {
   type NotificationOwner,
 } from "@/lib/notifications/community-recipients";
 import { sendExpoPushNotifications } from "@/lib/notify/push";
+import { signalInboxChanges } from "./inbox-signal";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 export type NotificationRecipient = NotificationOwner;
@@ -28,6 +29,7 @@ type NotificationRow = {
 type CreatedCommunityNotificationRow = {
   id: string;
   recipient_user_id: string | null;
+  recipient_guest_key: string | null;
   title: string;
   description: string;
   href: string;
@@ -202,8 +204,15 @@ async function createCommunityCommentNotifications(input: {
   const { data: createdRows, error } = await admin
     .from("community_notifications")
     .upsert(rows, { onConflict: "dedupe_key", ignoreDuplicates: true })
-    .select("id, recipient_user_id, title, description, href");
+    .select("id, recipient_user_id, recipient_guest_key, title, description, href");
   if (error) throw error;
+
+  const owners: NotificationRecipient[] = [];
+  for (const row of createdRows ?? []) {
+    if (row.recipient_user_id) owners.push({ userId: row.recipient_user_id });
+    else if (row.recipient_guest_key) owners.push({ guestKey: row.recipient_guest_key });
+  }
+  await signalInboxChanges(owners);
 
   const createdByUserId = new Map(
     ((createdRows ?? []) as CreatedCommunityNotificationRow[])

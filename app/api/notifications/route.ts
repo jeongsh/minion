@@ -1,4 +1,5 @@
-import { NextResponse } from "next/server";
+import { after, NextResponse } from "next/server";
+import { signalInboxChanges } from "@/lib/notifications/inbox-signal";
 
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { getExistingGuestKey } from "@/lib/community/guest-identity";
@@ -62,6 +63,7 @@ export async function PATCH(request: Request) {
   } else {
     return NextResponse.json({ error: "Invalid notification id" }, { status: 400 });
   }
+  after(() => signalInboxChanges([recipient]));
   return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "private, no-store" } });
 }
 
@@ -84,5 +86,6 @@ export async function DELETE(request: Request) {
   } else {
     return NextResponse.json({ error: "Invalid notification id" }, { status: 400 });
   }
+  after(() => signalInboxChanges([recipient]));
   return NextResponse.json({ ok: true }, { headers: { "Cache-Control": "private, no-store" } });
 }

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { sendExpoPushNotifications } from "../notify/push.ts";
+import { signalInboxChanges } from "./inbox-signal.ts";
 
 const RECIPIENT_BATCH_SIZE = 500;
 const NOTIFICATION_WINDOW_MS = 24 * 60 * 60 * 1000;
@@ -106,6 +107,7 @@ export async function notifyTeamContentUpdate(
       .select("id, recipient_user_id");
     if (error) throw error;
     createdRows.push(...((data ?? []) as Array<{ id: string; recipient_user_id: string }>));
+    await signalInboxChanges((data ?? []).map(row => ({ userId: row.recipient_user_id })));
   }
 
   if (createdRows.length === 0) return { notificationsCreated: 0, pushSent: 0 };

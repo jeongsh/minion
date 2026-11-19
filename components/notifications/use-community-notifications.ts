@@ -1,19 +1,27 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname } from "next/navigation";
 
 import type { AppNotification } from "@/lib/notifications";
 
-const MEMBER_POLL_MS = 60_000;
-const GUEST_POLL_MS = 5 * 60_000;
-const COMMUNITY_POLL_MS = 5_000;
+const RECONCILE_MS = 5 * 60_000;
+const DISCONNECTED_POLL_MS = 30_000;
+
+function subscribeVisibility(listener: () => void) {
+  document.addEventListener("visibilitychange", listener);
+  return () => document.removeEventListener("visibilitychange", listener);
+}
+const isVisible = () => document.visibilityState === "visible";
+const serverVisibility = () => false;
 
 export function isRemoteNotificationId(id: string) {
   return id.startsWith("community:") || id.startsWith("content:");
 }
 
-export function useCommunityNotifications(identityScope: string, canReceiveNotifications: boolean, onNewNotification?: (notification: AppNotification) => void) {
+export function useCommunityNotifications(topic: string | null, onNewNotification?: (notification: AppNotification) => void) {
+  const identityScope = topic ?? "";
+  const visible = useSyncExternalStore(subscribeVisibility, isVisible, serverVisibility);
   const pathname = usePathname();
   const communityPage = pathname === "/community" || pathname.startsWith("/community/") || /^\/fan\/[^/]+\/community(?:\/|$)/.test(pathname);
   const [state, setState] = useState<{ identityScope: string; notifications: AppNotification[] }>({
@@ -22,18 +30,20 @@ export function useCommunityNotifications(identityScope: string, canReceiveNotif
   });
   const knownNotificationIds = useRef<{ identityScope: string; ids: Set<string> } | null>(null);
   const onNewNotificationRef = useRef(onNewNotification);
+  const inCommunity = useRef(communityPage);
   const mutations = useRef({ revision: 0, pending: 0 });
   const notifications = state.identityScope === identityScope ? state.notifications : [];
 
   useEffect(() => {
     onNewNotificationRef.current = onNewNotification;
-  }, [onNewNotification]);
+    inCommunity.current = communityPage;
+  }, [onNewNotification, communityPage]);
 
   const refresh = useCallback(async (signal?: AbortSignal) => {
     if (mutations.current.pending > 0 || signal?.aborted) return;
     const revision = mutations.current.revision;
     const response = await fetch("/api/notifications", { cache: "no-store", signal });
-    if (!response.ok) return;
+    if (!response.ok) throw new Error("Inbox refresh failed: " + response.status);
     const body = await response.json() as { notifications?: AppNotification[] };
     // A response started before a read/delete must not restore stale inbox state.
     if (signal?.aborted || mutations.current.revision !== revision) return;
@@ -42,7 +52,9 @@ export function useCommunityNotifications(identityScope: string, canReceiveNotif
     knownNotificationIds.current = { identityScope, ids: new Set(next.map((notification) => notification.id)) };
     if (previous?.identityScope === identityScope) {
       for (const notification of next) {
-        if (!previous.ids.has(notification.id) && (notification.kind === "team_video" || notification.kind === "team_social")) {
+        const shouldPresent = notification.kind === "team_video" || notification.kind === "team_social"
+          || (inCommunity.current && Boolean(notification.activityKind));
+        if (shouldPresent && !notification.readAt && !previous.ids.has(notification.id)) {
           onNewNotificationRef.current?.(notification);
         }
       }
@@ -51,31 +63,67 @@ export function useCommunityNotifications(identityScope: string, canReceiveNotif
   }, [identityScope]);
 
   useEffect(() => {
-    knownNotificationIds.current = null;
+    if (!topic || !visible) return;
     const controller = new AbortController();
-    const pollMs = communityPage && canReceiveNotifications
-      ? COMMUNITY_POLL_MS
-      : identityScope === "guest" ? GUEST_POLL_MS : MEMBER_POLL_MS;
-    let polling = false;
-    const refreshWhenVisible = () => {
-      if (document.visibilityState !== "visible" || polling) return;
-      polling = true;
-      void refresh(controller.signal).catch(() => undefined).finally(() => { polling = false; });
+    let inFlight = false;
+    let queued = false;
+    let connected = false;
+    let started = false;
+    let disconnect: (() => void) | undefined;
+    let timer: number;
+    const schedule = (delay: number) => {
+      window.clearTimeout(timer);
+      timer = window.setTimeout(sync, delay);
     };
-    const initialLoad = canReceiveNotifications ? window.setTimeout(refreshWhenVisible, 0) : undefined;
-    const interval = canReceiveNotifications ? window.setInterval(refreshWhenVisible, pollMs) : undefined;
-    document.addEventListener("visibilitychange", refreshWhenVisible);
-    window.addEventListener("focus", refreshWhenVisible);
-    window.addEventListener("online", refreshWhenVisible);
+    async function sync() {
+      if (controller.signal.aborted) return;
+      if (inFlight) { queued = true; return; }
+      started = true;
+      inFlight = true;
+      let retry = false;
+      try {
+        await refresh(controller.signal);
+      } catch {
+        retry = true;
+      } finally {
+        inFlight = false;
+        const delay = connected && !retry ? RECONCILE_MS : DISCONNECTED_POLL_MS;
+        if (!controller.signal.aborted) schedule(queued ? 100 : delay);
+        queued = false;
+      }
+    }
+    // Subscribe before taking the snapshot, but also load it if the socket is slow or unavailable.
+    schedule(500);
+    void import("@supabase/supabase-js").then(({ RealtimeClient }) => {
+      if (controller.signal.aborted) return;
+      const url = new URL("/realtime/v1", process.env.NEXT_PUBLIC_SUPABASE_URL);
+      url.protocol = url.protocol.replace("http", "ws");
+      const client = new RealtimeClient(url.href, { params: { apikey: process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY! } });
+      const channel = client.channel(topic);
+      disconnect = () => { void client.removeAllChannels(); };
+      channel.on("broadcast", { event: "inbox-changed" }, () => {
+        if (!controller.signal.aborted) {
+          if (inFlight) queued = true;
+          else schedule(100);
+        }
+      }).subscribe(status => {
+        if (controller.signal.aborted) return;
+        const wasConnected = connected;
+        connected = status === "SUBSCRIBED";
+        if (connected || !started) void sync();
+        else if (wasConnected) schedule(DISCONNECTED_POLL_MS);
+      });
+    }).catch(() => {
+      console.warn("[inbox] Realtime unavailable. Using periodic refresh.");
+    });
+    window.addEventListener("online", sync);
     return () => {
       controller.abort();
-      window.clearTimeout(initialLoad);
-      window.clearInterval(interval);
-      document.removeEventListener("visibilitychange", refreshWhenVisible);
-      window.removeEventListener("focus", refreshWhenVisible);
-      window.removeEventListener("online", refreshWhenVisible);
+      window.clearTimeout(timer);
+      window.removeEventListener("online", sync);
+      disconnect?.();
     };
-  }, [identityScope, refresh, communityPage, canReceiveNotifications]);
+  }, [topic, visible, refresh]);
 
   const mutate = useCallback(async (url: string, options: RequestInit) => {
     mutations.current.revision += 1;

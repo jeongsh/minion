@@ -1,6 +1,7 @@
 import "server-only";
 
 import { sendExpoPushNotifications } from "@/lib/notify/push";
+import { signalInboxChanges } from "./inbox-signal";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
 // 정산은 matches 트리거(settle_prediction_bets_for_match)가 DB 안에서 처리하므로 앱은 정산 시점을
@@ -145,6 +146,7 @@ export async function runPredictionResultNotificationAutomation(): Promise<Predi
   const created = ((createdRows ?? []) as CreatedNotificationRow[]).filter((row) => row.recipient_user_id);
   summary.notificationsCreated = created.length;
   if (created.length === 0) return summary;
+  await signalInboxChanges(created.map(row => ({ userId: row.recipient_user_id! })));
 
   const { data: tokens, error: tokenError } = await admin
     .from("push_tokens")
