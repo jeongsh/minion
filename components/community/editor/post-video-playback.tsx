@@ -85,7 +85,10 @@ export function PostVideoPlayback({ children }: { children: ReactNode }) {
       container.removeEventListener("ended", onEnded, true);
       container.removeEventListener("volumechange", onVolumeChange, true);
       observer.disconnect();
-      for (const video of videos) video.pause();
+      // A server refresh can replace children without removing the video elements.
+      for (const video of videos) {
+        if (!video.isConnected) video.pause();
+      }
     };
   }, [children]);
 

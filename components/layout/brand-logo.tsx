@@ -17,7 +17,7 @@ export function BrandLogo({
     <span
       role="img"
       aria-label="MINION"
-      className={`inline-block ${className}`}
+      className={`block ${className}`}
       style={{
         aspectRatio: "171 / 39",
         backgroundColor: accentColor,
