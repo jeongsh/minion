@@ -47,6 +47,7 @@ import type {
 import {
   applyAiFlag,
   blindTargetIfReported,
+  commentReplyError,
   createComment,
   createPost,
   deleteGuestComment,
@@ -426,12 +427,8 @@ export async function createCommentAction(input: {
   const profanity = profanityError({ plainText: content });
   if (profanity) return { ok: false, error: profanity };
 
-  if (input.parentId) {
-    const parent = await getCommentById(input.parentId);
-    if (!parent || parent.postId !== input.postId) {
-      return { ok: false, error: "답글을 작성할 댓글을 찾을 수 없습니다." };
-    }
-  }
+  const replyError = await commentReplyError(input.postId, input.parentId);
+  if (replyError) return { ok: false, error: replyError };
 
   let guest: { nickname: string; key: string; ipKey: string; ipLabel: string } | undefined;
   if (!user) {
@@ -506,12 +503,8 @@ export async function createMiniconCommentAction(input: {
   const minicons = await getPublishedMiniconItemsById(miniconItemIds);
   if (miniconItemIds.some((id) => !minicons.has(id))) return { ok: false, error: "사용할 수 없는 미니콘입니다." };
 
-  if (input.parentId) {
-    const parent = await getCommentById(input.parentId);
-    if (!parent || parent.postId !== input.postId) {
-      return { ok: false, error: "답글을 작성할 댓글을 찾을 수 없습니다." };
-    }
-  }
+  const replyError = await commentReplyError(input.postId, input.parentId);
+  if (replyError) return { ok: false, error: replyError };
 
   let guest: { nickname: string; key: string; ipKey: string; ipLabel: string } | undefined;
   if (!user) {

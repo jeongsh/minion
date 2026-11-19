@@ -1,6 +1,6 @@
 import type { MobileCommunityCommentMutationDto } from "@/packages/contracts/src/mobile-v1";
 import { after } from "next/server";
-import { createComment, getCommentById, getPostById } from "@/lib/data/community";
+import { commentReplyError, createComment, getPostById } from "@/lib/data/community";
 import { revalidateCommunityHomeByTeamId } from "@/lib/community/revalidate";
 import { guestRateLimitError, isCommunityGuestSanctioned } from "@/lib/data/community-guests";
 import { isCommunityUserSanctioned } from "@/lib/data/community-users";
@@ -26,10 +26,6 @@ export async function POST(request: Request) {
   const parentId = typeof body?.parentId === "string" ? body.parentId : null;
   const post = await getPostById(postId);
   if (!post) return mobileError("NOT_FOUND", "게시글을 찾을 수 없습니다.", 404);
-  if (parentId) {
-    const parent = await getCommentById(parentId);
-    if (!parent || parent.postId !== postId) return mobileError("BAD_REQUEST", "답글을 작성할 댓글을 찾을 수 없습니다.", 400);
-  }
   const rawMiniconItemIds = body?.miniconItemIds;
   const rawMiniconItemCount = Array.isArray(rawMiniconItemIds) ? rawMiniconItemIds.length : 0;
   const miniconItemIds = Array.isArray(rawMiniconItemIds)
@@ -56,6 +52,9 @@ export async function POST(request: Request) {
     if (rateError) return mobileError("RATE_LIMITED", rateError, 429);
   }
   try {
+    const replyError = await commentReplyError(postId, parentId);
+    if (replyError) return mobileError("BAD_REQUEST", replyError, 400);
+
     if (miniconItemIds) {
       const minicons = await getPublishedMiniconItemsById(miniconItemIds);
       if (miniconItemIds.some((id) => !minicons.has(id))) {
