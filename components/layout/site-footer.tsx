@@ -9,12 +9,12 @@ export function SiteFooter({ accentColor }: { accentColor?: string }) {
       <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
         <BrandLogo accentColor={accentColor} className="w-16 shrink-0" />
         <nav className="flex flex-wrap gap-x-4 gap-y-2 text-[13px] font-medium text-[#666a71] dark:text-[#a0a7b2]" aria-label="서비스 안내 및 정책">
-          <Link href="/about" className="hover:text-[#18191c] dark:hover:text-white">서비스 소개</Link>
-          <Link href="/terms" className="hover:text-[#18191c] dark:hover:text-white">이용약관</Link>
-          <Link href="/privacy" className="hover:text-[#18191c] dark:hover:text-white">개인정보처리방침</Link>
-          <Link href="/community/rules" className="hover:text-[#18191c] dark:hover:text-white">커뮤니티 운영원칙</Link>
-          <Link href="/advertising" className="hover:text-[#18191c] dark:hover:text-white">광고·제휴 문의</Link>
-          <Link href="/support" className="hover:text-[#18191c] dark:hover:text-white">고객센터</Link>
+          <Link prefetch={false} href="/about" className="hover:text-[#18191c] dark:hover:text-white">서비스 소개</Link>
+          <Link prefetch={false} href="/terms" className="hover:text-[#18191c] dark:hover:text-white">이용약관</Link>
+          <Link prefetch={false} href="/privacy" className="hover:text-[#18191c] dark:hover:text-white">개인정보처리방침</Link>
+          <Link prefetch={false} href="/community/rules" className="hover:text-[#18191c] dark:hover:text-white">커뮤니티 운영원칙</Link>
+          <Link prefetch={false} href="/advertising" className="hover:text-[#18191c] dark:hover:text-white">광고·제휴 문의</Link>
+          <Link prefetch={false} href="/support" className="hover:text-[#18191c] dark:hover:text-white">고객센터</Link>
         </nav>
         <div className="flex items-center gap-1 sm:ml-auto" aria-label="MINION 앱 다운로드">
           <a href={IOS_APP_STORE_URL} target="_blank" rel="noopener noreferrer" aria-label="App Store에서 MINION 앱 받기" title="App Store" className="grid h-10 w-10 place-items-center rounded-xl text-[#666a71] transition hover:bg-[var(--ui-card-hover)] hover:text-[#18191c] dark:text-[#a0a7b2] dark:hover:text-white">

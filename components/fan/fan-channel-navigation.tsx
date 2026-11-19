@@ -36,7 +36,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
   return (
     <div data-ad-secondary-header className={`fan-local-navigation sticky z-30 border-[var(--ui-border)] bg-[var(--page-background)] transition-[top] duration-200 lg:border-b ${mobilePostDetail ? "hidden md:block" : ""}`}>
       <UnderlineNav
-        items={mobileTabs.map((tab) => ({ key: tab.segment, label: tab.label, href: hrefFor(tab.segment) }))}
+        items={mobileTabs.map((tab) => ({ key: tab.segment, label: tab.label, href: hrefFor(tab.segment), prefetch: false }))}
         activeKey={mobileTabs.find((tab) => isActive(tab.segment) || (tab.alsoActive ? isActive(tab.alsoActive) : false))?.segment ?? "__none__"}
         ariaLabel="팬페이지 로컬 메뉴"
         className="font-paperozi lg:hidden [--accent:var(--team-accent-text)]"
@@ -49,6 +49,7 @@ export function FanChannelNavigation({ teamSlug }: { teamSlug: string }) {
           const active = isActive(tab.segment);
           return (
             <Link
+              prefetch={false}
               key={href}
               href={href}
               aria-current={active ? "page" : undefined}

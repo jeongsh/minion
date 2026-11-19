@@ -75,6 +75,7 @@ export function TeamSwitcher({ team, pathname }: { team?: Team; pathname: string
         >
           <div className="max-h-[60vh] overflow-y-auto">
             <Link
+              prefetch={false}
               role="menuitem"
               href="/"
               onClick={() => setOpen(false)}
@@ -90,6 +91,7 @@ export function TeamSwitcher({ team, pathname }: { team?: Team; pathname: string
               const isCurrent = item.id === team?.id;
               return (
                 <Link
+                  prefetch={false}
                   key={item.id}
                   role="menuitem"
                   href={`/fan/${item.fanSiteHost}${tabSuffix}`}

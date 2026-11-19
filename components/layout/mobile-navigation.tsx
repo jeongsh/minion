@@ -55,7 +55,7 @@ export function MobileLocalNavigation({ pathname }: { pathname: string }) {
   const activeItem = items.find(({ href }) => pathname === href || (href !== "/" && pathname.startsWith(`${href}/`)));
   return <div className="hub-local-navigation sticky z-30 bg-[var(--page-background)] transition-[top] duration-200 md:hidden">
     <UnderlineNav
-      items={items.map(({ href, label }) => ({ key: href, href, label, prefetch: href === "/tournaments" ? false : undefined }))}
+      items={items.map(({ href, label }) => ({ key: href, href, label, prefetch: false }))}
       activeKey={activeItem?.href ?? ""}
       ariaLabel="허브 로컬 메뉴"
       className="font-paperozi"
@@ -80,7 +80,7 @@ export function MobileNavigation({ pathname, favoriteTeam, followedTeams, teams 
       const className = `${dockItemClass} ${colorClass(active)}`;
       if (href === "/fan") return <TeamPicker key={href} teams={teams} followedTeams={followedTeams} favoriteTeam={favoriteTeam} active={active} className={className} />;
       const destination = href === "/community" && favoriteTeam ? `/fan/${favoriteTeam.fanSiteHost}/community` : href;
-      return <Link key={href} href={destination} aria-current={active ? "page" : undefined} className={className}>
+      return <Link prefetch={false} key={href} href={destination} aria-current={active ? "page" : undefined} className={className}>
         <span className="relative grid h-5 w-5 place-items-center"><Icon size={20} strokeWidth={active ? 2.5 : 2} aria-hidden /></span>
         <span className="max-w-full truncate">{label}</span>
       </Link>;

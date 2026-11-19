@@ -15,6 +15,7 @@ function TeamGrid({ teams, followedIds }: { teams: Team[]; followedIds?: Set<str
         const following = followedIds?.has(team.id) ?? false;
         return (
           <Link
+            prefetch={false}
             key={team.id}
             href={`/fan/${team.fanSiteHost}`}
             data-following={following ? "true" : undefined}

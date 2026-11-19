@@ -5,7 +5,7 @@
 // - 리액션/신고는 회원 ID 또는 서버가 발급한 비회원 ID에 귀속한다.
 // - LP는 로그인 작성자에게만 반영한다.
 
-import { revalidatePath, updateTag } from "next/cache";
+import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { after } from "next/server";
 
@@ -13,7 +13,7 @@ import { isCurrentUserAdmin } from "@/lib/auth/admin";
 import { canManageStudioContent, stopStudioReservations } from "@/lib/community/ai-studio-management";
 import { getCurrentUser } from "@/lib/auth/current-user";
 import { recordLpEvent } from "@/lib/rank/record-lp";
-import { HOME_PUBLIC_DATA_TAG } from "@/lib/data/home-cache";
+import { revalidateCommunityHome } from "@/lib/community/revalidate";
 import { scheduleCommunityCommentNotifications } from "@/lib/notifications/community";
 import type { BoardScope } from "@/lib/community/boards";
 import { getBoard } from "@/lib/community/boards";
@@ -68,12 +68,6 @@ const LOGIN_REQUIRED: ActionResult = {
   requiresLogin: true,
 };
 
-function revalidateCommunityHome(scope: BoardScope, teamSlug?: string) {
-  revalidatePath(communityIndexPath(scope, teamSlug));
-  revalidatePath("/");
-  updateTag(HOME_PUBLIC_DATA_TAG);
-}
-
 export async function getGuestNicknameAction(): Promise<
   { ok: true; nickname: string } | { ok: false; error: string }
 > {
@@ -118,10 +112,6 @@ export type ReactionActionResult =
   | { ok: false; error: string; requiresLogin?: boolean };
 
 /** 커뮤니티 피드 인덱스 경로(revalidate 용). 단일 피드라 말머리 구분 없이 인덱스만 갱신. */
-function communityIndexPath(scope: BoardScope, teamSlug: string | undefined): string {
-  return scope === "team" && teamSlug ? `/fan/${teamSlug}/community` : `/community`;
-}
-
 function postPath(scope: BoardScope, teamSlug: string | undefined, postId: string): string {
   return scope === "team" && teamSlug
     ? `/fan/${teamSlug}/community/post/${postId}`
@@ -243,7 +233,7 @@ function scheduleAiModeration(params: {
       }
 
       try {
-        revalidateCommunityHome(params.scope, params.teamSlug);
+        revalidateCommunityHome(params);
         revalidatePath(postPath(params.scope, params.teamSlug, params.pagePostId));
       } catch {
         // 응답 이후 문맥에서 revalidate 가 거부되더라도 블라인드는 이미 DB에 반영됐다.
@@ -324,7 +314,7 @@ export async function createPostAction(input: {
     text: extractPlainText(content, 1_000_000),
   });
 
-  revalidateCommunityHome(input.scope, input.teamSlug);
+  revalidateCommunityHome(input);
   return { ok: true, message: "글 발사 완료. 게시판에 착지했어요." };
 }
 
@@ -388,7 +378,7 @@ export async function updatePostAction(input: {
   });
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
-  revalidateCommunityHome(input.scope, input.teamSlug);
+  revalidateCommunityHome(input);
   return { ok: true, message: isAiAdmin ? "AI 게시글을 수정했습니다. 남은 댓글 예약은 일시정지했습니다." : "수정 완료. 문장 결 살짝 정돈했어요." };
 }
 
@@ -408,7 +398,7 @@ export async function deletePostAction(input: {
 
   if (isAiAdmin) await stopStudioReservations(input.postId, true);
   await deletePost(input.postId);
-  revalidateCommunityHome(input.scope, input.teamSlug);
+  revalidateCommunityHome(input);
   return { ok: true, message: isAiAdmin ? "AI 게시글을 삭제하고 남은 댓글 예약을 취소했습니다." : "게시글을 조용히 치웠어요." };
 }
 
@@ -486,7 +476,7 @@ export async function createCommentAction(input: {
     text: content,
   });
 
-  revalidateCommunityHome(input.scope, input.teamSlug);
+  revalidateCommunityHome(input);
   return { ok: true, message: "댓글 톡 붙여뒀어요.", comment: await getCommentById(id).catch(error => { console.error("Saved comment hydration failed", error); return null; }) ?? undefined };
 }
 
@@ -557,7 +547,7 @@ export async function createMiniconCommentAction(input: {
     postId: input.postId,
   });
 
-  revalidateCommunityHome(input.scope, input.teamSlug);
+  revalidateCommunityHome(input);
   return { ok: true, message: miniconItemIds.length === 2 ? "더블 미니콘을 붙였어요." : "미니콘을 붙였어요.", comment: await getCommentById(id).catch(error => { console.error("Saved comment hydration failed", error); return null; }) ?? undefined };
 }
 
@@ -578,7 +568,7 @@ export async function deleteGuestPostAction(input: {
     return { ok: false, error: error instanceof Error ? error.message : "비회원 ID를 확인하지 못했습니다." };
   }
   await deletePost(input.postId);
-  revalidateCommunityHome(input.scope, input.teamSlug);
+  revalidateCommunityHome(input);
   return { ok: true, message: "게시글을 삭제했습니다." };
 }
 
@@ -603,7 +593,7 @@ export async function deleteCommentAction(input: {
 
   if (isAiAdmin) await stopStudioReservations(input.postId);
   await deleteGuestComment(input.commentId);
-  revalidateCommunityHome(input.scope, input.teamSlug);
+  revalidateCommunityHome(input);
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
   return { ok: true, message: isAiAdmin ? "AI 댓글을 삭제했습니다. 남은 댓글 예약은 일시정지했습니다." : "댓글을 삭제했습니다." };
 }
@@ -695,7 +685,7 @@ export async function reactAction(input: {
   // 인기글 승격 판정: 명예 - 싫어요가 스코프 컷 이상이면 hot_at 스냅샷(등재 후 유지).
   if (input.target === "post" && before !== after) {
     await promotePostIfHot(input.targetId);
-    revalidateCommunityHome(input.scope, input.teamSlug);
+    revalidateCommunityHome(input);
   }
 
   revalidatePath(postPath(input.scope, input.teamSlug, input.postId));
@@ -749,7 +739,7 @@ export async function reportPostAction(input: {
     postId: input.postId,
   });
   if (newlyBlinded) {
-    revalidateCommunityHome(input.scope, input.teamSlug);
+    revalidateCommunityHome(input);
     after(() =>
       notifyDiscordModeration({
         kind: "report_blind",

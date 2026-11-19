@@ -131,7 +131,7 @@ async function ResolvedShell({ children }: { children: React.ReactNode }) {
     : null;
   return (
     <>
-      <AdDocumentBoundary prefetchDocuments={!user} />
+      <AdDocumentBoundary />
       {user ? <AutoCheckIn key={`check-in:${user.id}`} userId={user.id} /> : null}
       <AppShell
         key={`shell:${user?.id ?? "guest"}`}
