@@ -83,8 +83,9 @@ function TransferEventForm({ editing = null, season, teams, players, onSaved }: 
   const [leaguepediaInput, setLeaguepediaInput] = useState("");
   const availablePlayers = [...players.filter((player) => !addedPlayers.some((added) => normalizeTransferName(added.name) === normalizeTransferName(player.name))), ...addedPlayers];
   const [toTeamId, setToTeamId] = useState(editing?.to ? findTransferTeam(editing.to, teams)?.id ?? "legacy" : "");
-  const [fromTeamId, setFromTeamId] = useState(editing?.from ? findTransferTeam(editing.from, teams)?.id ?? "custom" : "");
-  const [customFrom, setCustomFrom] = useState(editing?.from ?? "");
+  const previousTeam = editing?.kind === "return" && editing.from === "은퇴" ? "" : editing?.from ?? "";
+  const [fromTeamId, setFromTeamId] = useState(previousTeam ? findTransferTeam(previousTeam, teams)?.id ?? "custom" : "");
+  const [customFrom, setCustomFrom] = useState(previousTeam);
   const [kind, setKind] = useState<string>(editing?.kind ?? "transfer"), [role, setRole] = useState<string>(editing?.role ?? "TOP"), [provenance, setProvenance] = useState<string>(editing?.provenance ?? "official");
   const formRef = useRef<HTMLFormElement>(null);
   const noDestination = ["leave", "retire", "inactive"].includes(kind);
@@ -159,7 +160,7 @@ function TransferEventForm({ editing = null, season, teams, players, onSaved }: 
             </>}
           </div>
           <label className="text-sm font-medium">발표일<input name="date" type="date" required defaultValue={editing?.date ?? new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul" }).format(new Date())} className={inputClass} /></label>
-          <div className="min-w-0 text-sm font-medium"><span>이전 팀</span><FilterDropdown ariaLabel="이전 팀" selected={fromTeamId} onSelect={setFromTeamId} options={fromOptions} searchable searchPlaceholder="팀 검색" disabled={pending} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" />{fromTeamId === "custom" && <input name="from" aria-label="이전 팀 직접 입력" required maxLength={100} placeholder="팀명 또는 FA" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} disabled={pending} className={inputClass} />}</div>
+          <div className="min-w-0 text-sm font-medium"><span>{kind === "return" ? "이전 팀 (선택)" : "이전 팀"}</span><FilterDropdown ariaLabel="이전 팀" selected={fromTeamId} onSelect={setFromTeamId} options={fromOptions} searchable searchPlaceholder="팀 검색" disabled={pending} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" />{fromTeamId === "custom" && <input name="from" aria-label="이전 팀 직접 입력" required maxLength={100} placeholder="팀명 또는 FA" value={customFrom} onChange={(event) => setCustomFrom(event.target.value)} disabled={pending} className={inputClass} />}</div>
           <div className="min-w-0 text-sm font-medium"><span>새 팀</span><FilterDropdown ariaLabel="새 팀" selected={noDestination ? "" : toTeamId} onSelect={setToTeamId} options={teamOptions} searchable searchPlaceholder="팀 검색" disabled={pending || noDestination} triggerTypography="ui" rootClassName="mt-1" triggerClassName="w-full justify-between bg-[var(--ui-surface)] px-3 py-2" /></div>
           <label className="text-sm font-medium">출처 링크 (선택)<input name="sourceUrl" type="url" placeholder="https://" defaultValue={editing?.references[0] ?? editing?.sourceUrl} className={inputClass} /></label>
           <label className="text-sm font-medium">계약 종료일 (선택)<input name="contractUntil" type="date" defaultValue={editing?.contractUntil ?? ""} className={inputClass} /></label>

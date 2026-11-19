@@ -31,7 +31,7 @@ export function resolveTransferRosters(rosters: TransferRoster[], events: Transf
         if (event.kind !== "renew" && (roster.team !== destination || ["leave", "retire", "inactive", "demote"].includes(event.kind))) slot.next = slot.next.filter((p) => normalizeTransferName(p.name) !== key);
       }
     }
-    if (destination && ["renew", "transfer", "loan", "promote"].includes(event.kind)) {
+    if (destination && ["renew", "transfer", "loan", "promote", "return"].includes(event.kind)) {
       const slot = result.find((r) => r.team === destination)?.slots.find((s) => s.role === event.role);
       if (slot) {
         const person = slot.previous.find((p) => normalizeTransferName(p.name) === key) ?? { name: event.player, realName: event.realName, wikiUrl: "" };
@@ -47,10 +47,15 @@ export function resolveTransferRosters(rosters: TransferRoster[], events: Transf
 export function reportedRosterChanges(team: string, reported: TransferEvent[], season: number) {
   const arrivals = reported.filter((e) => lckTeamCode(e.to) === team && (e.kind === "renew"
     ? (!e.contractUntil || Number(e.contractUntil.slice(0, 4)) > season) && (!e.date || e.date >= `${season}-09-01` || Boolean(e.contractUntil && Number(e.contractUntil.slice(0, 4)) > season))
-    : ["transfer", "loan", "promote"].includes(e.kind) && (e.kind === "promote" || lckTeamCode(e.from) !== team)));
+    : isTransferArrival(e, team)));
   const departures = reported.filter((e) => e.kind !== "renew" && lckTeamCode(e.from) === team && lckTeamCode(e.to) !== team);
   const leaving = new Set(reported.filter((e) => e.kind !== "renew" && lckTeamCode(e.to) !== team).map((e) => normalizeTransferName(e.player)));
   return { arrivals, departures, leaving };
+}
+
+export function isTransferArrival(event: TransferEvent, team: string) {
+  return event.kind === "promote" || event.kind === "return" ||
+    ((event.kind === "transfer" || event.kind === "loan") && lckTeamCode(event.from) !== team);
 }
 
 export function departuresForTeam(team: string, rosters: TransferRoster[], events: TransferEvent[]) {

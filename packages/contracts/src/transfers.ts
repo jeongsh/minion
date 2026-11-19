@@ -1,8 +1,8 @@
 export const TRANSFER_ROLES = ["TOP", "JGL", "MID", "BOT", "SUP"] as const;
 export type TransferRole = (typeof TRANSFER_ROLES)[number] | "COACH";
-export type TransferKind = "renew" | "transfer" | "loan" | "leave" | "retire" | "inactive" | "promote" | "demote";
+export type TransferKind = "renew" | "transfer" | "loan" | "leave" | "retire" | "return" | "inactive" | "promote" | "demote";
 export const TRANSFER_KIND_LABELS: Record<TransferKind, string> = {
-  renew: "재계약", transfer: "이적", loan: "임대", leave: "계약 종료", retire: "은퇴", inactive: "휴식 / 군 복무", promote: "콜업", demote: "센드다운",
+  renew: "재계약", transfer: "이적", loan: "임대", leave: "계약 종료", retire: "은퇴", return: "복귀", inactive: "휴식 / 군 복무", promote: "콜업", demote: "센드다운",
 };
 export type TransferPerson = { name: string; realName: string; wikiUrl: string };
 export type TransferSlot = { role: TransferRole; previous: TransferPerson[]; next: TransferPerson[]; renewed: boolean };
@@ -99,7 +99,10 @@ export function latestPlayerEvents(events: TransferEvent[]) {
   for (const event of events) {
     const key = normalizeTransferName(event.player);
     const prev = map.get(key);
-    if (!prev || (event.date ?? "") > (prev.date ?? "") || (event.date === prev.date && prev.kind === "leave" && event.kind !== "leave")) map.set(key, event);
+    if (!prev || (event.date ?? "") > (prev.date ?? "") || (event.date === prev.date && (
+      (prev.kind === "leave" && event.kind !== "leave") ||
+      (prev.kind === "retire" && event.kind === "return")
+    ))) map.set(key, event);
   }
   return [...map.values()];
 }
