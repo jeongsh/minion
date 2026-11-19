@@ -17,6 +17,26 @@ function refresh() {
   revalidatePath("/admin/transfers");
 }
 
+async function writeManualEvents(
+  client: Awaited<ReturnType<typeof createSupabaseAdminActionClient>>,
+  season: number,
+  previous: TransferEvent[],
+  events: TransferEvent[],
+): Promise<string | null> {
+  const { data: updated, error } = await client.rpc("replace_lck_transfer_manual_events", {
+    target_season: season,
+    expected_events: previous,
+    replacement_events: events,
+  });
+  if (error) {
+    console.error("Failed to write LCK transfer manual events", { season, code: error.code });
+    return "이적 기록을 저장하지 못했습니다. 잠시 후 다시 시도해 주세요.";
+  }
+  if (!updated) return "다른 관리 작업과 겹쳤습니다. 새로고침 후 다시 시도해 주세요.";
+  refresh();
+  return null;
+}
+
 export async function importTransferPlayerAction(input: string) {
   const client = await createSupabaseAdminActionClient();
   if (typeof input !== "string" || input.length > 1000) return { error: "선수 닉네임 또는 리그피디아 문서 링크를 확인해 주세요.", player: null };
@@ -88,18 +108,14 @@ export async function saveTransferEventAction(form: FormData) {
   if (kind === "renew" && (lckTeamCode(from) ?? normalizeTransferName(from)) !== (lckTeamCode(to) ?? normalizeTransferName(to))) return { error: "재계약은 이전 팀과 새 팀이 같아야 합니다." };
   const event: TransferEvent = { id, player, realName: original?.realName ?? "", role, kind, from, to, date, contractUntil, sourceUrl, references: [], provenance, updatedAt: new Date().toISOString() };
   const events = [...market.manual_events.filter((e) => e.id !== id), event];
-  const { data: updated, error: updateError } = await client.from("lck_transfer_markets").update({ manual_events: events }).eq("season", season).eq("manual_events", JSON.stringify(market.manual_events)).select("season");
-  if (updateError || !updated?.length) return { error: "다른 관리 작업과 겹쳤습니다. 새로고침 후 다시 저장해 주세요." };
-  refresh(); return { error: null };
+  return { error: await writeManualEvents(client, season, market.manual_events, events) };
 }
 
 export async function removeTransferOverrideAction(season: number, id: string) {
   const client = await createSupabaseAdminActionClient();
-  if (!Number.isInteger(season) || typeof id !== "string" || id.length > 150) throw new Error("잘못된 요청입니다.");
+  if (!Number.isInteger(season) || typeof id !== "string" || id.length > 150) return { error: "잘못된 요청입니다." };
   const { data, error } = await client.from("lck_transfer_markets").select("manual_events").eq("season", season).single();
-  if (error) throw new Error("기록을 읽지 못했습니다.");
+  if (error) return { error: "기록을 읽지 못했습니다." };
   const previous = data.manual_events as TransferEvent[];
-  const { data: updated, error: updateError } = await client.from("lck_transfer_markets").update({ manual_events: previous.filter((e) => e.id !== id) }).eq("season", season).eq("manual_events", JSON.stringify(previous)).select("season");
-  if (updateError || !updated?.length) throw new Error("다른 관리 작업과 겹쳤습니다. 새로고침 후 다시 시도해 주세요.");
-  refresh();
+  return { error: await writeManualEvents(client, season, previous, previous.filter((e) => e.id !== id)) };
 }
