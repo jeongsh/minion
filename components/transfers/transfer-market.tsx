@@ -14,12 +14,12 @@ import "swiper/css";
 import styles from "./transfer-market.module.css";
 import { SegmentedToggle } from "@/components/ui/tabs";
 import type { Team } from "@/lib/types";
-import { departuresForTeam, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from "@/lib/transfers/view";
+import { departuresForTeam, isTransferArrival, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from "@/lib/transfers/view";
 import { isUnconfirmedTransfer, transferArticleUrl, latestPlayerEvents, lckTeamCode, marketEvents, movementCategory, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferMarket, type TransferPerson, type TransferRole } from "@/lib/transfers/types";
 
 const ROLE_ICONS: Record<string, string> = { TOP: "top", JGL: "jungle", MID: "middle", BOT: "bottom", SUP: "utility" };
 const ROLE_LABELS: Record<TransferRole, string> = { TOP: "탑", JGL: "정글", MID: "미드", BOT: "원딜", SUP: "서포터", COACH: "감독" };
-const MOVEMENT_OPTIONS = [ { value: "all", label: "전체 변동" }, { value: "domestic", label: "LCK 내 이동" }, { value: "outgoing", label: "LCK 이탈" }, { value: "incoming", label: "LCK 합류" }, { value: "renew", label: "재계약" }, { value: "leave", label: "계약 종료" }, { value: "retire", label: "은퇴" }, { value: "inactive", label: "휴식 / 군 복무" } ];
+const MOVEMENT_OPTIONS = [ { value: "all", label: "전체 변동" }, { value: "domestic", label: "LCK 내 이동" }, { value: "outgoing", label: "LCK 이탈" }, { value: "incoming", label: "LCK 합류" }, { value: "renew", label: "재계약" }, { value: "leave", label: "계약 종료" }, { value: "retire", label: "은퇴" }, { value: "return", label: TRANSFER_KIND_LABELS.return }, { value: "inactive", label: "휴식 / 군 복무" } ];
 const VIEW_OPTIONS = [{ key: "rosters", label: "팀별 로스터" }, { key: "moves", label: "선수 이동" }, { key: "fa", label: "FA" }];
 const filterTrigger = "w-full whitespace-nowrap";
 const PLAYER_TAGS = [
@@ -126,7 +126,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
         <Swiper key={teamFilter} modules={[A11y]} onSwiper={setSwiper} slidesPerView="auto" spaceBetween={6} watchOverflow grabCursor>
           {recentEvents.map((event) => <SwiperSlide key={event.id} style={{ width: "auto", maxWidth: "100%", height: "auto" }}>
             <article className="flex min-h-8 w-max flex-nowrap items-center gap-x-1.5 rounded-md bg-[var(--ui-card-bg)] px-1.5 py-0.5">
-              <span className="shrink-0 rounded bg-[var(--ui-surface)] px-1 text-[12px] leading-5 font-medium text-[var(--accent)]">{TRANSFER_KIND_LABELS[event.kind]}</span>
+              <span className="shrink-0 rounded bg-[var(--ui-surface)] px-1 text-[13px] leading-5 font-medium text-[var(--accent)]">{TRANSFER_KIND_LABELS[event.kind]}</span>
               {playerName({ name: event.player }, false, event, true)}
               <div className="flex min-w-0 items-center gap-1 text-[13px] font-normal text-[var(--ui-muted)]">{teamName(event.from || "미정", true, false, true)}{event.kind !== "renew" && <><ChevronsRight size={14} strokeWidth={1.75} className="shrink-0" aria-hidden />{teamName(destination(event), true, false, true)}</>}</div>
             </article>
@@ -151,7 +151,7 @@ export function TransferMarketView({ market, teams, followedTeamIds = [] }: { ma
         const reportedChanges = reportedRosterChanges(roster.team, reported, market.season);
         const confirmedDepartures = departuresForTeam(roster.team, market.snapshot.rosters, allEvents);
         const departures = [...confirmedDepartures, ...reportedChanges.departures.filter((event) => !confirmedDepartures.some((confirmed) => normalizeTransferName(confirmed.player) === normalizeTransferName(event.player)))];
-        const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && ["transfer", "loan", "promote"].includes(event.kind) && (event.kind === "promote" || lckTeamCode(event.from) !== roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
+        const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && isTransferArrival(event, roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
         const arrivalNames = new Set(confirmedArrivals.map((event) => normalizeTransferName(event.player)));
         const renewedNames = new Set(latest.filter((event) => event.kind === "renew" && lckTeamCode(event.to || event.from) === roster.team).map((event) => normalizeTransferName(event.player)));
         const arrivals = [...confirmedArrivals, ...reportedChanges.arrivals.filter((event) => event.kind !== "renew" && !arrivalNames.has(normalizeTransferName(event.player)))];

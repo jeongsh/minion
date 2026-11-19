@@ -17,17 +17,17 @@ import { minionSize } from '@/constants/minion-theme';
 import { resolveApiAssetUrl, type MobileTeamsPageDto } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
 import type { MobileTransfersDto } from '../../../packages/contracts/src/mobile-v1';
-import { departuresForTeam, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from '../../../packages/contracts/src/transfer-view';
+import { departuresForTeam, isTransferArrival, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from '../../../packages/contracts/src/transfer-view';
 import { isUnconfirmedTransfer, transferArticleUrl, latestPlayerEvents, lckTeamCode, marketEvents, movementCategory, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferRole } from '../../../packages/contracts/src/transfers';
 
 const ROLE_ICONS: Record<string, string> = { TOP: 'top', JGL: 'jungle', MID: 'middle', BOT: 'bottom', SUP: 'utility' };
 const ROLE_LABELS: Record<TransferRole, string> = { TOP: '탑', JGL: '정글', MID: '미드', BOT: '원딜', SUP: '서포터', COACH: '감독' };
 const TABS = [{ key: 'rosters', label: '팀별 로스터' }, { key: 'moves', label: '선수 이동' }, { key: 'fa', label: 'FA' }];
-const MOVEMENTS = [{ value: 'all', label: '전체 변동' }, { value: 'domestic', label: 'LCK 내 이동' }, { value: 'outgoing', label: 'LCK 이탈' }, { value: 'incoming', label: 'LCK 합류' }, { value: 'renew', label: '재계약' }, { value: 'leave', label: '계약 종료' }, { value: 'retire', label: '은퇴' }, { value: 'inactive', label: '휴식 / 군 복무' }];
+const MOVEMENTS = [{ value: 'all', label: '전체 변동' }, { value: 'domestic', label: 'LCK 내 이동' }, { value: 'outgoing', label: 'LCK 이탈' }, { value: 'incoming', label: 'LCK 합류' }, { value: 'renew', label: '재계약' }, { value: 'leave', label: '계약 종료' }, { value: 'retire', label: '은퇴' }, { value: 'return', label: TRANSFER_KIND_LABELS.return }, { value: 'inactive', label: '휴식 / 군 복무' }];
 const destination = (event: TransferEvent) => event.to || (event.kind === 'retire' ? '은퇴' : event.kind === 'inactive' ? '휴식 / 군 복무' : '행선지 미정');
 
 export function TransferMarketScreen({ season }: { season?: string }) {
-  const path = `/api/mobile/v1/transfers${season ? `?season=${encodeURIComponent(season)}` : ''}`;
+  const path = `/api/mobile/v1/transfers?returnKind=1${season ? `&season=${encodeURIComponent(season)}` : ''}`;
   const query = useScreenQuery<MobileTransfersDto>(path);
   const { session, loading: authLoading } = useAuth();
   const followed = useScreenQuery<MobileTeamsPageDto>('/api/mobile/v1/teams?view=directory', { cache: 'memory', cacheScope: session?.user.id ?? 'guest', enabled: !authLoading });
@@ -107,7 +107,7 @@ function TransferMarketView({ data, followedTeamIds }: { data: MobileTransfersDt
       const reportedChanges = reportedRosterChanges(roster.team, reported, market.season);
       const confirmedDepartures = departuresForTeam(roster.team, market.snapshot.rosters, allEvents);
       const departures = [...confirmedDepartures, ...reportedChanges.departures.filter((event) => !confirmedDepartures.some((confirmed) => normalizeTransferName(confirmed.player) === normalizeTransferName(event.player)))];
-      const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && ['transfer', 'loan', 'promote'].includes(event.kind) && (event.kind === 'promote' || lckTeamCode(event.from) !== roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
+      const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && isTransferArrival(event, roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
       const arrivalNames = new Set(confirmedArrivals.map((event) => normalizeTransferName(event.player)));
       const arrivals = [...confirmedArrivals, ...reportedChanges.arrivals.filter((event) => event.kind !== 'renew' && !arrivalNames.has(normalizeTransferName(event.player)))];
       const rosterReports = reportedChanges.arrivals.filter((event) => !arrivalNames.has(normalizeTransferName(event.player)));

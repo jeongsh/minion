@@ -80,7 +80,8 @@ export async function saveTransferEventAction(form: FormData) {
   const season = Number(value("season"));
   const kind = value("kind") as TransferEvent["kind"], role = value("role") as TransferEvent["role"];
   const provenance = value("provenance") as TransferEvent["provenance"];
-  const player = value("player"), from = value("from"), date = value("date"), sourceUrl = value("sourceUrl");
+  const player = value("player"), date = value("date"), sourceUrl = value("sourceUrl");
+  const from = value("from") || (kind === "return" ? "은퇴" : "");
   let to = value("to");
   const toTeamId = value("toTeamId");
   if (toTeamId) {
@@ -90,7 +91,7 @@ export async function saveTransferEventAction(form: FormData) {
     to = team.name;
   }
   if (!Number.isInteger(season) || season < 2026 || season > transferSeason() || !Object.hasOwn(TRANSFER_KIND_LABELS, kind) || ![...TRANSFER_ROLES, "COACH"].includes(role) || !["official", "report", "rumor", "namuwiki"].includes(provenance)) return { error: "입력 항목을 확인해 주세요." };
-  if (!player || player.length > 50 || from.length > 100 || to.length > 100 || !from || (["transfer", "loan", "renew", "promote", "demote"].includes(kind) && !to)) return { error: "이름과 이전 팀, 새 팀을 확인해 주세요." };
+  if (!player || player.length > 50 || from.length > 100 || to.length > 100 || !from || (["transfer", "loan", "renew", "promote", "demote", "return"].includes(kind) && !to)) return { error: kind === "return" ? "이름과 복귀할 팀을 확인해 주세요." : "이름과 이전 팀, 새 팀을 확인해 주세요." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date || Number(date.slice(0, 4)) < season - 1 || Number(date.slice(0, 4)) > season + 1) return { error: "발표일을 확인해 주세요." };
   if (sourceUrl) try { const url = new URL(sourceUrl); if (url.protocol !== "https:" || url.username || url.password) throw new Error(); } catch { return { error: "출처는 HTTPS 링크로 입력해 주세요." }; }
   const { data, error } = await client.from("lck_transfer_markets").select("*").eq("season", season).single();
