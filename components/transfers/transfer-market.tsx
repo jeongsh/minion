@@ -23,6 +23,7 @@ const MOVEMENT_OPTIONS = [ { value: "all", label: "전체 변동" }, { value: "d
 const VIEW_OPTIONS = [{ key: "rosters", label: "팀별 로스터" }, { key: "moves", label: "선수 이동" }, { key: "fa", label: "FA" }];
 const filterTrigger = "w-full whitespace-nowrap";
 const PLAYER_TAGS = [
+  { names: ["showmaker", "쇼메이커", "smash", "스매쉬", "스매시", "cvmax", "씨맥"], label: "낭만파", className: styles.dkTag },
   { names: ["faker", "페이커"], label: "GOAT", className: styles.fakerTag },
   { names: ["delight", "딜라이트"], label: "죽음을 각오한", className: styles.delightTag },
   { names: ["oner", "오너"], label: "의욕에 가득찬", className: styles.onerTag },
