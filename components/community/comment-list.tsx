@@ -13,7 +13,7 @@ import { ReactionButtons } from "@/components/community/reaction-buttons";
 import { ReportButton } from "@/components/community/report-button";
 import { RankAvatar } from "@/components/rank/rank-avatar";
 import { useToast } from "@/components/ui/toast";
-import { deleteCommentAction, updateGuestCommentAction } from "@/lib/community/actions";
+import { deleteCommentAction, updateCommentAction } from "@/lib/community/actions";
 import type { BoardScope } from "@/lib/community/boards";
 import { blindLabel } from "@/lib/community/moderation-labels";
 import type { CommunityCommentItem, ReactionState } from "@/lib/community/types";
@@ -161,19 +161,19 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
     ? comment.authorId === viewerId
     : Boolean(comment.guestKey && comment.guestKey === currentGuestKey)));
 
-  const beginGuestEdit = (comment: CommunityCommentItem) => {
+  const beginEdit = (comment: CommunityCommentItem) => {
     setEditingId(comment.id);
     setEditingContent(comment.content);
     setReplyTo(null);
   };
 
-  const saveGuestEdit = (comment: CommunityCommentItem) => {
+  const saveEdit = (comment: CommunityCommentItem) => {
     const nextContent = editingContent.trim();
     commentState?.patch({ ...comment, content: nextContent });
     setEditingId(null);
     startTransition(async () => {
       try {
-      const result = await updateGuestCommentAction({
+      const result = await updateCommentAction({
         commentId: comment.id,
         postId: comment.postId,
         content: nextContent,
@@ -193,10 +193,6 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
       } catch { commentState?.rollback(comment.id); setEditingId(comment.id); setEditingContent(nextContent); showToast({ title: "댓글을 수정하지 못했습니다. 다시 시도해 주세요.", tone: "error" }); }
     });
   };
-
-  const guestEditButton = (comment: CommunityCommentItem) => comment.contentKind === "text" && (managedAiCommentIds.includes(comment.id) || (comment.guestKey && comment.guestKey === currentGuestKey)) ? (
-    <button type="button" disabled={pending} onClick={() => beginGuestEdit(comment)} className="text-[13px] font-medium text-[var(--ui-muted)] hover:text-[var(--ui-ink)] disabled:opacity-50">수정</button>
-  ) : null;
 
   if (comments.length === 0) return null;
 
@@ -281,7 +277,7 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
             <div className="mt-2 flex items-center justify-end gap-2">
               <span className="mr-auto text-[13px] tabular-nums text-[var(--ui-muted)]">{editingContent.length.toLocaleString("ko-KR")}/{editLimit(comment).toLocaleString("ko-KR")}자</span>
               <button type="button" disabled={pending} onClick={() => setEditingId(null)} className="h-8 rounded-[var(--ui-control-radius)] px-3 text-[13px] font-medium text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)]">취소</button>
-              <button type="button" disabled={pending || !editingContent.trim() || editingContent.length > editLimit(comment)} onClick={() => saveGuestEdit(comment)} className="h-8 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3 text-[13px] font-medium text-[var(--ui-surface)] disabled:opacity-50">{pending ? "저장 중" : "저장"}</button>
+              <button type="button" disabled={pending || !editingContent.trim() || editingContent.length > editLimit(comment)} onClick={() => saveEdit(comment)} className="h-8 rounded-[var(--ui-control-radius)] bg-[var(--ui-ink)] px-3 text-[13px] font-medium text-[var(--ui-surface)] disabled:opacity-50">{pending ? "저장 중" : "저장"}</button>
             </div>
           </div>
         ) : comment.blindedAt ? (
@@ -294,7 +290,9 @@ export function CommentList({ comments: initialComments, deletedCommentIds = EMP
         <div className={`-ml-2 mt-1 flex h-8 items-center gap-2 ${comment.id.startsWith("pending:") ? "pointer-events-none opacity-50" : ""}`} inert={comment.id.startsWith("pending:")}>
           <ReactionButtons target="comment" targetId={comment.id} postId={comment.postId} scope={scope} teamSlug={teamSlug} initialState={commentReactions[comment.id] ?? null} initialHonorCount={comment.likeCount} initialDislikeCount={comment.dislikeCount} size="sm" />
           {depth < MAX_COMMENT_REPLY_DEPTH ? <button type="button" aria-expanded={replyTo === comment.id} onClick={() => setReplyTo((current) => current === comment.id ? null : comment.id)} className="h-8 rounded-[var(--ui-control-radius)] px-2 text-[13px] font-medium text-[var(--ui-text)] hover:bg-[var(--ui-surface-muted)]">답글</button> : null}
-          {guestEditButton(comment)}
+          {comment.contentKind === "text" && ownsComment(comment) ? (
+            <button type="button" disabled={pending} onClick={() => beginEdit(comment)} className="h-8 rounded-[var(--ui-control-radius)] px-2 text-[13px] font-medium text-[var(--ui-muted)] hover:bg-[var(--ui-surface-muted)] hover:text-[var(--ui-ink)] disabled:opacity-50">수정</button>
+          ) : null}
         </div>
         {replyTo === comment.id ? <div className="mt-2"><CommentForm postId={comment.postId} parentId={comment.id} scope={scope} teamSlug={teamSlug} isGuest={!viewerId} miniconPacks={miniconPacks} onSubmitted={() => setReplyTo(current => current === comment.id ? null : current)} /></div> : null}
       </div>

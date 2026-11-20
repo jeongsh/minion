@@ -591,7 +591,7 @@ export async function deleteCommentAction(input: {
   return { ok: true, message: isAiAdmin ? "AI 댓글을 삭제했습니다. 남은 댓글 예약은 일시정지했습니다." : "댓글을 삭제했습니다." };
 }
 
-export async function updateGuestCommentAction(input: {
+export async function updateCommentAction(input: {
   commentId: string;
   postId: string;
   content: string;
@@ -609,17 +609,25 @@ export async function updateGuestCommentAction(input: {
   }
   const profanity = profanityError({ plainText: content });
   if (profanity) return { ok: false, error: profanity };
-  const guestKey = await getExistingGuestKey();
-  if (!comment || comment.deletedAt || comment.contentKind !== "text" || comment.postId !== input.postId || (!isAiAdmin && (!comment.guestKey || comment.authorId || comment.guestKey !== guestKey))) {
+  if (!comment || comment.deletedAt || comment.contentKind !== "text" || comment.postId !== input.postId) {
     return { ok: false, error: "이 댓글을 수정할 권한이 없습니다." };
   }
 
-  if (!isAiAdmin) {
+  if (isAiAdmin) {
+    await stopStudioReservations(input.postId);
+  } else if (comment.authorId) {
+    const user = await getCurrentUser();
+    if (user?.id !== comment.authorId) return { ok: false, error: "이 댓글을 수정할 권한이 없습니다." };
+    const sanction = await communitySanctionError(user.id);
+    if (sanction) return sanction;
+  } else {
+    const guestKey = await getExistingGuestKey();
+    if (!comment.guestKey || comment.guestKey !== guestKey) return { ok: false, error: "이 댓글을 수정할 권한이 없습니다." };
     const identity = await getGuestIdentity();
     if (await isCommunityGuestSanctioned(identity.key, identity.ipKey)) {
       return { ok: false, error: "이 비회원 ID 또는 접속 환경은 커뮤니티 이용이 제한되었습니다." };
     }
-  } else await stopStudioReservations(input.postId);
+  }
 
   await updateGuestComment(input.commentId, content);
   scheduleAiModeration({
