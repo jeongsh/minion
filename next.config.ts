@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   htmlLimitedBots:
     /Googlebot|[\w-]+-Google|Google-[\w-]+|Chrome-Lighthouse|Slurp|DuckDuckBot|baiduspider|yandex|sogou|bitlybot|tumblr|vkShare|quora link preview|redditbot|ia_archiver|Bingbot|BingPreview|applebot|facebookexternalhit|facebookcatalog|Twitterbot|LinkedInBot|Slackbot|Discordbot|WhatsApp|SkypeUriPreview|Yeti|googleweblight/i,
   experimental: {
+    serverActions: { bodySizeLimit: "2mb" },
     // On this Windows checkout the dev cache grew to 40 GB / 440k files,
     // with multi-second compactions during edits. Keep dev caching in memory.
     turbopackFileSystemCacheForDev: false,

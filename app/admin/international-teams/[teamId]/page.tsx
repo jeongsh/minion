@@ -2,15 +2,16 @@ import { notFound } from "next/navigation";
 
 import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
+import { Input } from "@/components/ui/input";
 import { getPlayersByTeamId, getTeamById } from "@/lib/data/lck";
 import type { Player } from "@/lib/types";
 
 import {
   updateInternationalPlayerImageAction,
   updateInternationalTeamColorsAction,
-  updateInternationalTeamMediaAction,
   updateInternationalTeamShortNameAction,
 } from "../actions";
+import { TeamLogoFileInput, TeamMediaForm } from "./team-media-form";
 
 function inputClassName() {
   return "min-w-0 rounded-md border border-border bg-background px-3 py-2 font-normal";
@@ -113,10 +114,7 @@ export default async function AdminInternationalTeamDetailPage({
         <h2 id="team-media" className="text-2xl font-semibold">
           팀 로고 / 프로필 이미지
         </h2>
-        <form
-          action={updateInternationalTeamMediaAction}
-          className="flex flex-col gap-4 rounded-md border border-border bg-surface p-4"
-        >
+        <TeamMediaForm>
           <input type="hidden" name="teamId" value={team.id} />
           <div className="flex gap-3">
             <div className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-md border border-border bg-background">
@@ -144,15 +142,27 @@ export default async function AdminInternationalTeamDetailPage({
               )}
             </div>
           </div>
-          <label className="flex flex-col gap-1 text-sm font-semibold">
-            로고 URL
-            <input name="logoUrl" defaultValue={team.logoUrl ?? ""} placeholder="이미지 URL 입력" required className={inputClassName()} />
-          </label>
-          <label className="flex flex-col gap-1 text-sm font-semibold">
-            화이트 로고 URL
-            <input name="logoWhiteUrl" defaultValue={team.logoWhiteUrl ?? ""} placeholder="다크모드용 로고 URL" className={inputClassName()} />
-          </label>
-          <label className="flex items-center gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm font-semibold">
+          <div className="grid gap-2">
+            <div className="grid gap-3 sm:grid-cols-2">
+              <TeamLogoFileInput name="logoFile" label="기본 로고 파일" />
+              <TeamLogoFileInput name="logoWhiteFile" label="화이트 로고 파일" />
+            </div>
+            <p id="team-logo-file-formats" className="text-[13px] text-muted">PNG, JPG, WebP, SVG 파일당 최대 768KB</p>
+          </div>
+          <details className="text-sm">
+            <summary className="w-fit cursor-pointer font-medium">로고 URL 직접 입력</summary>
+            <div className="mt-3 grid gap-3 sm:grid-cols-2" key={JSON.stringify([team.logoUrl, team.logoWhiteUrl])}>
+              <label className="flex min-w-0 flex-col gap-1 font-medium">
+                기본 로고 URL
+                <Input name="logoUrl" defaultValue={team.logoUrl ?? ""} />
+              </label>
+              <label className="flex min-w-0 flex-col gap-1 font-medium">
+                화이트 로고 URL
+                <Input name="logoWhiteUrl" defaultValue={team.logoWhiteUrl ?? ""} />
+              </label>
+            </div>
+          </details>
+          <label className="flex items-center gap-2 text-sm font-medium">
             <input
               type="checkbox"
               name="useWhiteLogoOnDark"
@@ -161,14 +171,11 @@ export default async function AdminInternationalTeamDetailPage({
             />
             다크모드에서 화이트 로고 사용
           </label>
-          <label className="flex flex-col gap-1 text-sm font-semibold">
+          <label className="flex flex-col gap-1 text-sm font-medium">
             프로필 이미지 URL
-            <input name="profileImageUrl" defaultValue={team.profileImageUrl ?? ""} placeholder="선택" className={inputClassName()} />
+            <Input name="profileImageUrl" defaultValue={team.profileImageUrl ?? ""} placeholder="선택" />
           </label>
-          <button type="submit" className="self-start rounded-md bg-accent px-3 py-2 text-sm font-semibold text-accent-foreground">
-            저장
-          </button>
-        </form>
+        </TeamMediaForm>
       </section>
 
       <section className="flex flex-col gap-4" aria-labelledby="team-colors">
