@@ -4,6 +4,7 @@ import { Breadcrumb } from "@/components/layout/breadcrumb";
 import { SectionHeader } from "@/components/layout/section-header";
 import { getAdminRosterSummary, getAllTeams } from "@/lib/data/lck";
 import type { Team } from "@/lib/types";
+import { LeaguepediaTeamSearch } from "./leaguepedia-team-search";
 import { InternationalRosterScriptHint } from "./script-hint";
 
 function TeamCard({ team, playerCount, missingImages }: { team: Team; playerCount: number; missingImages: number }) {
@@ -63,6 +64,7 @@ export default async function AdminInternationalTeamsPage() {
         <SectionHeader title="해외팀 관리" />
       </div>
 
+      <LeaguepediaTeamSearch />
       <InternationalRosterScriptHint />
 
       <section className="flex flex-col gap-4" aria-labelledby="international-team-list">

@@ -2,10 +2,13 @@ import sharp from "sharp";
 
 // Decode and re-encode rather than trusting optional picker MIME metadata or
 // passing undecodable originals through to the public avatar bucket.
-export async function prepareProfileImage(bytes: Buffer) {
+export async function prepareProfileImage(bytes: Buffer, { allowSvg = false } = {}) {
   const image = sharp(bytes, { limitInputPixels: 40_000_000 });
   const metadata = await image.metadata();
-  if (!metadata.format || !["png", "jpeg", "webp", "gif", "heif", "tiff"].includes(metadata.format)) {
+  if (!metadata.format || (
+    !["png", "jpeg", "webp", "gif", "heif", "tiff"].includes(metadata.format)
+    && !(allowSvg && metadata.format === "svg")
+  )) {
     throw new Error("지원하지 않는 이미지 형식입니다.");
   }
   const result = await image.rotate()

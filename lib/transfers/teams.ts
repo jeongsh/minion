@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { leaguepediaSourceId } from "../leaguepedia-identity.ts";
 import { fetchAuthenticatedLeaguepediaApi } from "../sync/leaguepedia-api.ts";
 import { resolveLeaguepediaImageUrls } from "../sync/leaguepedia-images.ts";
+import { leaguepediaTeamPayload, queryLeaguepediaCargo as cargo, queryLeaguepediaTeams, quoteCargoValue as quote, type CargoTeam } from "../sync/leaguepedia-team-cargo.ts";
 import { findTransferTeam, lckTeamCode, marketEvents, type TransferMarket, type TransferTeam } from "./types.ts";
 
 const TEAM_FIELDS = "id, slug, name, short_name, leaguepedia_page, source_team_id, is_lck_team";
@@ -19,20 +20,6 @@ export async function getTransferTeams(client: SupabaseClient): Promise<Transfer
   if (error || aliasError) throw new Error("팀 목록을 불러오지 못했습니다.");
   return data.map((team) => ({ ...team, aliases: aliases.filter((alias) => alias.team_id === team.id).map((alias) => alias.page_name) })) as TransferTeam[];
 }
-
-function quote(value: string) {
-  return `"${value.replace(/\\/g, "\\\\").replace(/"/g, '\\"')}"`;
-}
-
-async function cargo<T>(params: Record<string, string>): Promise<T[]> {
-  const response = await fetchAuthenticatedLeaguepediaApi(new URLSearchParams({ action: "cargoquery", format: "json", limit: "500", ...params }));
-  if (!response.ok) throw new Error(`Leaguepedia 팀 조회 실패 (${response.status}).`);
-  const body = await response.json() as { error?: { code?: string; info?: string }; cargoquery?: { title: T }[] };
-  if (body.error || !body.cargoquery) throw new Error(`Leaguepedia 팀 조회 실패: ${body.error?.info ?? "응답 형식을 확인할 수 없습니다."}`);
-  return body.cargoquery.map((entry) => entry.title);
-}
-
-type CargoTeam = { Page: string; Name: string; Short: string; Region: string; Image: string; IsDisbanded: string };
 
 export async function syncTransferTeams(client: SupabaseClient, season: number) {
   const teams = await getTransferTeams(client);
@@ -73,7 +60,7 @@ export async function syncTransferTeams(client: SupabaseClient, season: number) 
   const metadataByPage = new Map<string, CargoTeam>();
   for (let index = 0; index < candidates.length; index += 40) {
     const list = candidates.slice(index, index + 40).map(quote).join(",");
-    const rows = await cargo<CargoTeam>({ tables: "Teams=T", fields: "T._pageName=Page,T.Name,T.Short,T.Region,T.Image,T.IsDisbanded", where: `(T._pageName IN (${list}) OR T.Name IN (${list}) OR T.Short IN (${list}))` });
+    const rows = await queryLeaguepediaTeams({ where: `(T._pageName IN (${list}) OR T.Name IN (${list}) OR T.Short IN (${list}))` });
     if (rows.length === 500) throw new Error("해외팀 정보 조회 한도를 초과했습니다.");
     for (const row of rows) metadataByPage.set(row.Page, row);
     await new Promise((resolve) => setTimeout(resolve, 3000));
@@ -85,21 +72,16 @@ export async function syncTransferTeams(client: SupabaseClient, season: number) 
   for (const name of names) {
     const page = canonical.get(name) ?? name;
     const exact = metadata.filter((row) => row.Page === page);
-    const matches = exact.length ? exact : metadata.filter((row) => [row.Name, row.Short].some((value) => value.toLowerCase() === name.toLowerCase()));
+    const matches = exact.length ? exact : metadata.filter((row) => [row.Name, row.Short].some((value) => value?.toLowerCase() === name.toLowerCase()));
     if (matches.length !== 1 || matches[0].Region === "Korea") { unresolved.push(name); continue; }
     const row = matches[0];
     let team = findTransferTeam(row.Page, teams) ?? findTransferTeam(row.Name, teams)
       ?? findTransferTeam(EVENT_TEAM_NAMES[row.Page] ?? "", teams);
     if (!team) {
-      const slug = row.Page.normalize("NFKD").toLowerCase().replace(/['.]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const payload = leaguepediaTeamPayload(row, row.Image ? images.get(row.Image) ?? null : null);
+      const { slug } = payload;
       if (!slug) { unresolved.push(name); continue; }
-      const { data, error } = await client.from("teams").upsert({
-        slug, name: row.Name, short_name: row.Short || row.Name,
-        primary_color: "#52525B", secondary_color: "#18181B", fan_site_host: null,
-        leaguepedia_page: row.Page, source_team_id: leaguepediaSourceId(row.Page),
-        is_lck_team: false, imported_scope: "international_event", is_active: row.IsDisbanded !== "1",
-        logo_url: images.get(row.Image) ?? null,
-      }, { onConflict: "slug", ignoreDuplicates: true }).select(TEAM_FIELDS).maybeSingle();
+      const { data, error } = await client.from("teams").upsert(payload, { onConflict: "slug", ignoreDuplicates: true }).select(TEAM_FIELDS).maybeSingle();
       if (error) throw new Error(`해외팀 ${row.Name} 등록 실패: ${error.message}`);
       if (data) { team = { ...data, aliases: [] } as TransferTeam; created++; }
       else {

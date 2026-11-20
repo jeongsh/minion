@@ -2507,7 +2507,7 @@ async function getInstagramStoriesBase(
 // window. The short TTL bounds staleness for admin edits and scheduled syncs.
 const getTeamStandingsShared = unstable_cache(getTeamStandingsBase, ["lck-team-standings"], { revalidate: 30 });
 const getTeamsShared = unstable_cache(getTeamsBase, ["lck-teams"], { revalidate: 30 });
-const getAllTeamsShared = unstable_cache(getAllTeamsBase, ["lck-all-teams"], { revalidate: 30 });
+const getAllTeamsShared = unstable_cache(getAllTeamsBase, ["lck-all-teams"], { tags: ["lck-all-teams"], revalidate: 30 });
 const getPlayersShared = unstable_cache(getPlayersBase, ["lck-roster-players"], { revalidate: 30 });
 const getAllPlayersShared = unstable_cache(getAllPlayersBase, ["lck-all-players"], { revalidate: 30 });
 const getTournamentsShared = unstable_cache(getTournamentsBase, ["lck-tournaments-compact-labels"], { revalidate: 30 });

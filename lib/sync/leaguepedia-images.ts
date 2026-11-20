@@ -29,9 +29,11 @@ type ImageInfoPage = {
   imageinfo?: Array<{ url?: string }>;
 };
 
+type ImageLookupOptions = { onRetry?: (waitMs: number) => void; maxAttempts?: number };
+
 async function queryImageUrls(
   filenames: string[],
-  onRetry?: (waitMs: number) => void,
+  { onRetry, maxAttempts = MAX_RETRIES }: ImageLookupOptions,
 ): Promise<Map<string, string>> {
   const result = new Map<string, string>();
   if (filenames.length === 0) return result;
@@ -45,7 +47,7 @@ async function queryImageUrls(
     titles,
   });
 
-  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt < maxAttempts; attempt++) {
     const response = await fetchAuthenticatedLeaguepediaApi(searchParams);
 
     if (!response.ok) {
@@ -58,6 +60,7 @@ async function queryImageUrls(
     };
 
     if (body.error?.code === "ratelimited") {
+      if (attempt + 1 === maxAttempts) break;
       const waitMs = Math.min((attempt + 1) * 20_000, 120_000);
       onRetry?.(waitMs);
       await sleep(waitMs);
@@ -83,7 +86,7 @@ async function queryImageUrls(
 
 export async function resolveLeaguepediaImageUrls(
   inputs: Array<string | null | undefined>,
-  options: { onRetry?: (waitMs: number) => void } = {},
+  options: ImageLookupOptions = {},
 ): Promise<Map<string, string>> {
   const resolved = new Map<string, string>();
 
@@ -105,7 +108,7 @@ export async function resolveLeaguepediaImageUrls(
 
   for (let index = 0; index < filenames.length; index += BATCH_SIZE) {
     const chunk = filenames.slice(index, index + BATCH_SIZE);
-    const batch = await queryImageUrls(chunk, options.onRetry);
+    const batch = await queryImageUrls(chunk, options);
     for (const [filename, url] of batch) {
       resolved.set(filename, url);
     }
@@ -116,7 +119,7 @@ export async function resolveLeaguepediaImageUrls(
 
 export async function resolveLeaguepediaImageUrl(
   input: string | null | undefined,
-  options: { onRetry?: (waitMs: number) => void } = {},
+  options: ImageLookupOptions = {},
 ) {
   const filename = leaguepediaImageFilename(input);
   if (!filename) return null;
