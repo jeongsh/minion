@@ -26,6 +26,7 @@ import { createPortal } from "react-dom";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
 import { MiniconPickerPanel, rememberMiniconUse } from "@/components/community/minicon-picker";
 import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
+import { getPostImageLimitMessage, POST_IMAGE_MAX_COUNT } from "@/lib/community/limits";
 import type { MiniconItem, MiniconPack } from "@/lib/minicons/types";
 
 import { ColorPicker } from "./ColorPicker";
@@ -46,7 +47,7 @@ interface Props {
 type OpenPanel = "format" | "youtube" | "sns" | "minicon" | null;
 type SavedSelection = { from: number; to: number } | null;
 
-export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, allowVideos = allowEmbeds, miniconPacks = [], onUploadingChange, onImageSize, onUploadProgress }: Props) {
+export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allowMedia, maxImages = POST_IMAGE_MAX_COUNT, allowVideos = allowEmbeds, miniconPacks = [], onUploadingChange, onImageSize, onUploadProgress }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
   const embedPanelRef = useRef<HTMLDivElement>(null);
@@ -158,7 +159,7 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
     });
     const remainingImages = Math.max(0, maxImages - imageCount);
     const remainingVideos = Math.max(0, MAX_EDITOR_VIDEOS - videoCount);
-    if (imageFiles.length > remainingImages) alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`);
+    if (imageFiles.length > remainingImages) alert(getPostImageLimitMessage(maxImages, remainingImages));
     if (videoFiles.length > remainingVideos) alert(`동영상은 ${MAX_EDITOR_VIDEOS}개까지 첨부할 수 있습니다.`);
     const queue = [...imageFiles.slice(0, remainingImages), ...videoFiles.slice(0, remainingVideos)];
     if (queue.length === 0) {
@@ -212,7 +213,7 @@ export default function Toolbar({ editor, allowMedia = true, allowEmbeds = allow
       if (node.type.name === "image" || node.type.name === "imageResize") imageCount += 1;
     });
     if (imageCount >= maxImages) {
-      alert(`이미지와 미니콘은 합쳐서 ${maxImages}장까지 넣을 수 있습니다.`);
+      alert(getPostImageLimitMessage(maxImages, 0));
       return;
     }
     editor.chain().focus().insertContent({

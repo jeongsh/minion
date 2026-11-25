@@ -3,6 +3,12 @@ export const COMMENT_MOBILE_MAX_LENGTH = 200;
 export const POST_TITLE_MAX_LENGTH = 100;
 export const POST_TEXT_MAX_LENGTH = 60_000;
 export const POST_SERIALIZED_MAX_LENGTH = 1_000_000;
+export const POST_IMAGE_MAX_COUNT = 20;
+
+export function getPostImageLimitMessage(maxImages: number, remainingImages: number) {
+  const limit = `게시글에는 이미지와 미니콘을 합쳐 최대 ${maxImages}장까지 넣을 수 있습니다.`;
+  return remainingImages > 0 ? `${limit} 지금은 ${remainingImages}장 더 첨부할 수 있습니다.` : limit;
+}
 
 export function isMobileCommentClient(
   userAgent: string | null | undefined,

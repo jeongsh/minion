@@ -1,5 +1,7 @@
 import type { Editor } from "@tiptap/react";
 
+import { COMMUNITY_UPLOAD_MAX_BYTES } from "@/lib/community/upload-security";
+
 const MAX_IMAGE_MB = 20;
 const MAX_IMAGE_BYTES = MAX_IMAGE_MB * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = new Set(["image/png", "image/jpeg", "image/webp", "image/gif"]);
@@ -17,8 +19,11 @@ function validateImageFile(file: File): void {
   if (!ALLOWED_IMAGE_TYPES.has(file.type)) {
     throw new Error("PNG, JPG, WEBP, GIF 이미지만 업로드할 수 있습니다.");
   }
-  if (file.size <= 0 || file.size > MAX_IMAGE_BYTES) {
-    throw new Error(`이미지는 ${MAX_IMAGE_MB}MB 이하만 업로드할 수 있습니다.`);
+  if (file.size === 0) {
+    throw new Error("빈 이미지 파일입니다. 다른 파일을 선택해 주세요.");
+  }
+  if (file.size > MAX_IMAGE_BYTES) {
+    throw new Error(`이미지 원본 용량이 너무 큽니다. ${MAX_IMAGE_MB}MB 이하로 줄여 주세요.`);
   }
 }
 
@@ -89,6 +94,10 @@ export function getImageSize(file: File) {
 
 // 공개 버킷에 업로드하고 공개 URL을 받는다(서버 라우트가 service-role 로 업로드).
 async function uploadImage(file: File): Promise<{ url: string }> {
+  if (file.size > COMMUNITY_UPLOAD_MAX_BYTES) {
+    throw new Error(`이미지 용량이 너무 큽니다. ${COMMUNITY_UPLOAD_MAX_BYTES / 1024 / 1024}MB 이하로 줄여 주세요.`);
+  }
+
   const formData = new FormData();
   formData.append("file", file);
 
@@ -99,7 +108,9 @@ async function uploadImage(file: File): Promise<{ url: string }> {
 
   const body = (await response.json().catch(() => null)) as { url?: string; error?: string } | null;
   if (!response.ok || !body?.url) {
-    throw new Error(body?.error ?? "이미지 업로드에 실패했습니다.");
+    throw new Error(body?.error ?? (response.status === 413
+      ? "이미지 용량이 너무 큽니다. 파일 크기를 줄인 뒤 다시 첨부해 주세요."
+      : "이미지를 업로드하지 못했습니다. 다시 첨부해 주세요."));
   }
   return { url: body.url };
 }

@@ -161,7 +161,9 @@ export function validateCommunityImage(bytes: Uint8Array, declaredType: string) 
     return {
       ok: false as const,
       status: 400,
-      error: `Images must be ${Math.floor(COMMUNITY_UPLOAD_MAX_BYTES / 1024 / 1024)}MB or smaller.`,
+      error: bytes.byteLength === 0
+        ? "빈 이미지 파일입니다. 다른 파일을 선택해 주세요."
+        : `이미지 용량이 너무 큽니다. ${COMMUNITY_UPLOAD_MAX_BYTES / 1024 / 1024}MB 이하로 줄여 주세요.`,
     };
   }
 
@@ -170,7 +172,7 @@ export function validateCommunityImage(bytes: Uint8Array, declaredType: string) 
     return {
       ok: false as const,
       status: 400,
-      error: "Only valid PNG, JPG, WEBP, or GIF images can be uploaded.",
+      error: "이미지 파일을 읽을 수 없습니다. PNG, JPG, WEBP, GIF 파일인지 확인해 주세요.",
     };
   }
 
@@ -178,7 +180,7 @@ export function validateCommunityImage(bytes: Uint8Array, declaredType: string) 
     return {
       ok: false as const,
       status: 400,
-      error: "The declared MIME type does not match the image content.",
+      error: "파일 형식이 이미지 내용과 일치하지 않습니다. 이미지를 다시 저장해서 첨부해 주세요.",
     };
   }
 
@@ -191,7 +193,7 @@ export function validateCommunityImage(bytes: Uint8Array, declaredType: string) 
     return {
       ok: false as const,
       status: 400,
-      error: `Image dimensions must be ${COMMUNITY_UPLOAD_MAX_WIDTH}x${COMMUNITY_UPLOAD_MAX_HEIGHT} or smaller.`,
+      error: `이미지의 가로 또는 세로 크기가 너무 큽니다. ${COMMUNITY_UPLOAD_MAX_WIDTH}×${COMMUNITY_UPLOAD_MAX_HEIGHT}px 이하로 줄여 주세요.`,
     };
   }
 
@@ -202,6 +204,7 @@ export function checkUploadRateLimit(
   key: string,
   store: Map<string, UploadRateLimitState>,
   now = Date.now(),
+  maxUploads = COMMUNITY_UPLOAD_RATE_LIMIT_MAX,
 ): UploadRateLimitResult {
   const current = store.get(key);
 
@@ -210,7 +213,7 @@ export function checkUploadRateLimit(
     return { ok: true };
   }
 
-  if (current.count >= COMMUNITY_UPLOAD_RATE_LIMIT_MAX) {
+  if (current.count >= maxUploads) {
     return {
       ok: false,
       retryAfterSeconds: Math.max(1, Math.ceil((current.resetAt - now) / 1000)),

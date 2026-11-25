@@ -12,6 +12,7 @@ import type { BoardDef, BoardScope } from "@/lib/community/boards";
 import type { MiniconPack } from "@/lib/minicons/types";
 import {
   getCommunityPostTextLength,
+  POST_IMAGE_MAX_COUNT,
   POST_TEXT_MAX_LENGTH,
   POST_TITLE_MAX_LENGTH,
 } from "@/lib/community/limits";
@@ -176,7 +177,7 @@ export function PostForm({
           }}
           allowEmbeds={!isGuest}
           allowMedia
-          maxImages={isGuest ? 1 : 10}
+          maxImages={isGuest ? 1 : POST_IMAGE_MAX_COUNT}
           miniconPacks={miniconPacks}
           placeholder="내용을 입력하세요"
         />

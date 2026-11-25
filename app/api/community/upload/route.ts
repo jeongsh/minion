@@ -4,10 +4,13 @@ import sharp from "sharp";
 import {
   COMMUNITY_UPLOAD_BUCKET,
   COMMUNITY_UPLOAD_DAILY_LIMIT,
+  COMMUNITY_UPLOAD_RATE_LIMIT_MAX,
+  COMMUNITY_UPLOAD_RATE_LIMIT_WINDOW_MS,
   checkUploadRateLimit,
   communityUploadPrefix,
   validateCommunityImage,
 } from "@/lib/community/upload-security";
+import { POST_IMAGE_MAX_COUNT } from "@/lib/community/limits";
 import { getGuestIdentity } from "@/lib/community/guest-identity";
 import { recordOperationalEvent } from "@/lib/observability/operational-events";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -67,10 +70,11 @@ export async function POST(request: Request) {
   if (!user && !guest) return NextResponse.json({ error: "비회원 정보를 확인하지 못했습니다." }, { status: 400 });
   const ownerKey = user?.id ?? guest!.key;
 
-  const rateLimit = checkUploadRateLimit(ownerKey, rateLimitStore);
+  const maxUploads = user ? POST_IMAGE_MAX_COUNT : COMMUNITY_UPLOAD_RATE_LIMIT_MAX;
+  const rateLimit = checkUploadRateLimit(ownerKey, rateLimitStore, Date.now(), maxUploads);
   if (!rateLimit.ok) {
     return NextResponse.json(
-      { error: "Image upload rate limit exceeded. Try again shortly." },
+      { error: `이미지는 ${COMMUNITY_UPLOAD_RATE_LIMIT_WINDOW_MS / 60_000}분에 ${maxUploads}장까지 업로드할 수 있습니다. ${rateLimit.retryAfterSeconds}초 뒤 빠진 이미지를 다시 첨부해 주세요.` },
       { status: 429, headers: { "Retry-After": String(rateLimit.retryAfterSeconds) } },
     );
   }
@@ -134,7 +138,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: quotaError.message || "Failed to record image upload." }, { status: 500 });
     }
     return NextResponse.json(
-      { error: `You can upload up to ${COMMUNITY_UPLOAD_DAILY_LIMIT} images per day.` },
+      { error: `이미지는 하루에 ${COMMUNITY_UPLOAD_DAILY_LIMIT}장까지 업로드할 수 있습니다. 일일 업로드 한도에 도달했습니다.` },
       { status: 429 },
     );
   }
