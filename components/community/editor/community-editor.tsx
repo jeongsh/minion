@@ -8,6 +8,7 @@ import { buildCommunityExtensions } from "./community-extensions";
 import { useEmbedHydration } from "./use-embed-hydration";
 import { MAX_EDITOR_VIDEOS, getImageUploadErrorMessage, isEditorVideoFile, uploadAndInsertEditorImage, uploadAndInsertEditorVideo } from "./editor-image-upload";
 import type { MiniconPack } from "@/lib/minicons/types";
+import { getPostImageLimitMessage, POST_IMAGE_MAX_COUNT } from "@/lib/community/limits";
 
 interface Props {
   content: string;
@@ -19,7 +20,7 @@ interface Props {
   miniconPacks?: MiniconPack[];
 }
 
-export default function CommunityEditor({ content, onChange, allowMedia = true, allowEmbeds = allowMedia, maxImages = 10, placeholder, miniconPacks = [] }: Props) {
+export default function CommunityEditor({ content, onChange, allowMedia = true, allowEmbeds = allowMedia, maxImages = POST_IMAGE_MAX_COUNT, placeholder, miniconPacks = [] }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const dropUploadRef = useRef(false);
   const [uploadingDropImage, setUploadingDropImage] = useState(false);
@@ -76,7 +77,7 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
     const remainingVideos = Math.max(0, MAX_EDITOR_VIDEOS - videoCount);
     const imageFiles = files.filter((file) => !isEditorVideoFile(file));
     const videoFiles = files.filter(isEditorVideoFile);
-    if (imageFiles.length > remainingImages) alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`);
+    if (imageFiles.length > remainingImages) alert(getPostImageLimitMessage(maxImages, remainingImages));
     if (videoFiles.length > remainingVideos) alert(`동영상은 ${MAX_EDITOR_VIDEOS}개까지 첨부할 수 있습니다.`);
     const queue = new Set([...imageFiles.slice(0, remainingImages), ...videoFiles.slice(0, remainingVideos)]);
     if (queue.size === 0) return;
