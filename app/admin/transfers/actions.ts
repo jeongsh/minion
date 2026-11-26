@@ -7,6 +7,7 @@ import { syncTransferMarket } from "@/lib/transfers/sync";
 import { syncTransferTeams } from "@/lib/transfers/teams";
 import { importTransferPlayer } from "@/lib/transfers/players";
 import { TRANSFER_MARKET_TAG } from "@/lib/transfers/data";
+import { manageableRosterTags } from "@/lib/transfers/view";
 import { lckTeamCode, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, transferSeason, type TransferEvent, type TransferMarket } from "@/lib/transfers/types";
 
 function refresh() {
@@ -72,6 +73,35 @@ export async function setTransferAutoSyncAction(season: number, enabled: boolean
   const { data, error } = await client.from("lck_transfer_markets").update({ auto_sync: enabled }).eq("season", season).select("season");
   if (error || !data?.length) throw new Error("먼저 문서를 동기화해 주세요.");
   refresh();
+}
+
+export async function setRosterTagVisibilityAction(season: number, key: string | null, visible: boolean) {
+  const client = await createSupabaseAdminActionClient();
+  if (!Number.isInteger(season) || season < 2026 || season > transferSeason() || typeof visible !== "boolean" || (key !== null && typeof key !== "string")) {
+    throw new Error("요청한 시즌과 태그를 확인해 주세요.");
+  }
+
+  let keys: string[] | null = null;
+  if (key !== null || !visible) {
+    const { data, error } = await client.from("lck_transfer_markets").select("*").eq("season", season).single();
+    if (error || !data) throw new Error("로스터를 불러오지 못했습니다. 다시 시도해 주세요.");
+    keys = manageableRosterTags(data as TransferMarket).filter((tag) => key === null || tag.key === key).map((tag) => tag.key);
+    if (key !== null && !keys.length) throw new Error("변동 기록이 바뀌었습니다. 태그를 다시 선택해 주세요.");
+  }
+
+  const { data, error } = await client.rpc("set_lck_transfer_roster_tag_visibility", {
+    target_season: season,
+    tag_keys: keys,
+    show_tags: visible,
+  });
+  if (error || !data) {
+    console.error("Failed to save LCK roster tag visibility", { season, code: error?.code });
+    throw new Error("태그 표시 설정을 저장하지 못했습니다. 다시 시도해 주세요.");
+  }
+  updateTag(TRANSFER_MARKET_TAG);
+  revalidatePath("/transfers");
+  revalidatePath("/admin/transfers");
+  revalidatePath("/api/mobile/v1/transfers");
 }
 
 export async function saveTransferEventAction(form: FormData) {
