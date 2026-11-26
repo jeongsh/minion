@@ -1,13 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useRef } from "react";
 import { Bell, CheckCheck, MessageCircle, Radio, Star, Trash2, UserRound, Video, X } from "lucide-react";
 
+import { navigateFromAdDocument } from "@/components/ads/ad-runtime";
 import { ControlledDialog, dialogBodyClassName, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
 import { focusNotificationComment } from "@/components/notifications/notification-context";
 import type { AppNotification, NotificationKind } from "@/lib/notifications";
+
+type ReadNotification = (id: string) => Promise<void> | void;
 
 function NotificationTypeIcon({ kind }: { kind: NotificationKind }) {
   if (kind === "match_live" || kind === "match_event") return <Radio size={17} />;
@@ -35,10 +39,12 @@ function NotificationRow({
   onClose,
 }: {
   notification: AppNotification;
-  onRead: (id: string) => void;
+  onRead: ReadNotification;
   onRemove: (id: string) => void;
   onClose: () => void;
 }) {
+  const router = useRouter();
+  const { href, readAt } = notification;
   const eventImage = notification.matchEvent?.rightImageSrc ?? notification.matchEvent?.leftImageSrc;
   const imageUrl = notification.imageUrl ?? eventImage;
   const useObjectiveMask = Boolean(
@@ -81,8 +87,35 @@ function NotificationRow({
 
   return (
     <div className={`flex items-start gap-1.5 rounded-xl border border-[var(--ui-border)] px-2.5 py-2.5 transition ${notification.readAt ? "bg-transparent" : "bg-[var(--ui-surface)]"}`}>
-      {notification.href ? (
-        <Link href={notification.href} onClick={(event) => { onRead(notification.id); if (!event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && focusNotificationComment(notification.href)) event.preventDefault(); onClose(); }} className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md">{content}</Link>
+      {href ? (
+        <Link
+          href={href}
+          data-defer-ad-navigation={!readAt ? "" : undefined}
+          onClick={(event) => {
+            const read = readAt ? undefined : onRead(notification.id);
+            onClose();
+            if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
+            if (focusNotificationComment(href)) {
+              event.preventDefault();
+              return;
+            }
+            if (readAt) return;
+
+            event.preventDefault();
+            const { href: destination, origin } = event.currentTarget;
+            const navigate = () => {
+              if (origin !== window.location.origin) {
+                window.location.assign(destination);
+              } else if (!navigateFromAdDocument(destination)) {
+                router.push(href);
+              }
+            };
+            // A document load can fetch the inbox again as soon as it starts.
+            if (read) void read.then(navigate);
+            else navigate();
+          }}
+          className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md"
+        >{content}</Link>
       ) : (
         <button type="button" onClick={() => onRead(notification.id)} className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md text-left">{content}</button>
       )}
@@ -105,7 +138,7 @@ export function NotificationPanel({
   onClose: () => void;
   notifications: AppNotification[];
   unreadCount: number;
-  onRead: (id: string) => void;
+  onRead: ReadNotification;
   onReadAll: () => void;
   onRemove: (id: string) => void;
   onClear: () => void;

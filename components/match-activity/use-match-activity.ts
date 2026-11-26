@@ -249,8 +249,7 @@ export function useMatchActivity(
 
   const markNotificationRead = useCallback((id: string) => {
     if (isRemoteNotificationId(id)) {
-      communityNotifications.markRead(id);
-      return;
+      return communityNotifications.markRead(id);
     }
     const readAt = new Date().toISOString();
     updateStoredNotifications(notificationStorageKey, (current) => current.map((item) => item.id === id && !item.readAt ? { ...item, readAt } : item));
