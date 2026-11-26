@@ -24,6 +24,7 @@ import { BottomSheet } from '@/components/bottom-sheet';
 import { useMinionTheme } from '@/hooks/use-minion-theme';
 import type { MobileCommunityUploadDto, MobileMiniconItem, MobileMiniconPack, TiptapDocument, TiptapNode } from '@/lib/api-client';
 import { resolveApiAssetUrl, uploadMobileApi } from '@/lib/api-client';
+import { mediaUploadPlaceholderStyle } from './media-upload-placeholder-style';
 import { MiniconPicker, rememberMiniconUse } from './minicon-picker';
 
 type Props = { allowEmbeds: boolean; allowMedia: boolean; characterCount: number; characterLimit: number; maxImages: number; miniconPacks: MobileMiniconPack[]; onChange: (document: TiptapDocument) => void; value: TiptapDocument };
@@ -80,8 +81,20 @@ function blockHtml(node: TiptapNode): string {
 function documentHtml(document: TiptapDocument) { return document.content?.map(blockHtml).join('') || '<p><br></p>'; }
 
 function syncEditorEmpty(editor: HTMLElement) {
-  const hasMedia = Boolean(editor.querySelector('img,[data-video-src],[data-youtube-url],[data-embed-url],[data-poll-id]'));
+  const hasMedia = Boolean(editor.querySelector('img,[data-video-src],[data-youtube-url],[data-embed-url],[data-poll-id],[data-upload-placeholder]'));
   editor.dataset.empty = String(!hasMedia && !editor.textContent?.trim());
+}
+
+function getInsertionBlock(editor: HTMLElement, range: Range | null) {
+  const node = range?.commonAncestorContainer;
+  if (!node || !editor.contains(node)) return null;
+  let block = node instanceof HTMLElement ? node : node.parentElement;
+  while (block && block !== editor && block.parentElement !== editor) block = block.parentElement;
+  return block?.parentElement === editor ? block : null;
+}
+
+function isEmptyParagraph(block: Element | null) {
+  return Boolean(block?.matches('p') && !block.textContent?.trim() && !block.querySelector('img'));
 }
 
 function inlineNodes(node: Node, marks: NonNullable<TiptapNode['marks']> = []): TiptapNode[] {
@@ -123,8 +136,6 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
   const initialHtml = useMemo(() => documentHtml(initial), [initial]);
   const { fonts, theme } = useMinionTheme();
   const [uploading, setUploading] = useState(false);
-  const [editorWidth, setEditorWidth] = useState(0);
-  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
   const [formatOpen, setFormatOpen] = useState(false);
   const [palette, setPalette] = useState<PaletteMode>(null);
   const [linkMode, setLinkMode] = useState<LinkMode>('youtube');
@@ -146,7 +157,7 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
     if (!editor) return;
     const content = Array.from(editor.childNodes).flatMap<TiptapNode>((node) => {
       if (node.nodeType === Node.TEXT_NODE) return node.textContent ? [{ type: 'paragraph', content: [{ type: 'text', text: node.textContent }] }] : [];
-      return node instanceof HTMLElement ? [blockNode(node)] : [];
+      return node instanceof HTMLElement && !node.hasAttribute('data-upload-placeholder') ? [blockNode(node)] : [];
     });
     syncEditorEmpty(editor);
     onChange({ type: 'doc', content: content.length ? content : [{ type: 'paragraph' }] });
@@ -161,46 +172,65 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
     if (selectionRef.current && editor.contains(selectionRef.current.commonAncestorContainer)) selection?.addRange(selectionRef.current);
   };
   const execute = (name: string, argument?: string) => { restoreSelection(); document.execCommand(name, false, argument); rememberSelection(); emit(); };
-  const insertMarkup = (markup: string) => {
+  const insertMarkup = (markup: string, upload?: { placeholder: HTMLElement; block: HTMLElement | null }) => {
     const editor = editorRef.current; if (!editor) return;
-    restoreSelection();
+    if (upload) editor.focus();
+    else restoreSelection();
     const template = document.createElement('template'); template.innerHTML = markup;
     const fragment = template.content; const lastInserted = fragment.lastChild;
     const selection = window.getSelection();
-    if (selection?.rangeCount && editor.contains(selection.getRangeAt(0).commonAncestorContainer)) {
-      const range = selection.getRangeAt(0);
-      let topLevel = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE ? range.commonAncestorContainer as HTMLElement : range.commonAncestorContainer.parentElement;
-      while (topLevel?.parentElement && topLevel.parentElement !== editor) topLevel = topLevel.parentElement;
-      if (topLevel?.parentElement === editor) editor.insertBefore(fragment, topLevel.nextSibling);
-      else editor.appendChild(fragment);
-      if (topLevel?.matches('p') && !topLevel.textContent?.trim() && !topLevel.querySelector('img')) topLevel.remove();
-    } else editor.appendChild(fragment);
+    const topLevel = upload
+      ? upload.block
+      : getInsertionBlock(editor, selection?.rangeCount ? selection.getRangeAt(0) : null);
+    if (upload) upload.placeholder.replaceWith(fragment);
+    else editor.insertBefore(fragment, topLevel?.nextSibling ?? null);
+    if (isEmptyParagraph(topLevel)) topLevel?.remove();
     const paragraph = document.createElement('p'); paragraph.appendChild(document.createElement('br'));
     if (lastInserted?.parentNode === editor) editor.insertBefore(paragraph, lastInserted.nextSibling);
     else editor.appendChild(paragraph);
     const range = document.createRange(); range.selectNodeContents(paragraph); range.collapse(true); selection?.removeAllRanges(); selection?.addRange(range); selectionRef.current = range.cloneRange();
     emit();
+    return range;
   };
 
   const pickImage = async () => {
-    const remaining = Math.max(0, maxImages - (editorRef.current?.querySelectorAll('img').length ?? 0));
+    const editor = editorRef.current;
+    if (!editor || uploading) return;
+    const remaining = Math.max(0, maxImages - editor.querySelectorAll('img').length);
     if (remaining === 0) { Alert.alert(`이미지는 ${maxImages}장까지 첨부할 수 있습니다.`); return; }
-    const result = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: remaining > 1, mediaTypes: ['images'], quality: 1, selectionLimit: remaining });
-    if (result.canceled || result.assets.length === 0) return;
-    if (result.assets.some((asset) => (asset.fileSize ?? 0) > 20 * 1024 * 1024)) { Alert.alert('이미지는 한 장당 20MB 이하만 선택할 수 있습니다.'); return; }
+    rememberSelection();
+    let position = selectionRef.current?.cloneRange() ?? null;
+    let placeholder: HTMLElement | undefined;
     setUploading(true);
     try {
+      const result = await ImagePicker.launchImageLibraryAsync({ allowsMultipleSelection: remaining > 1, mediaTypes: ['images'], quality: 1, selectionLimit: remaining });
+      if (result.canceled || result.assets.length === 0) return;
+      if (result.assets.some((asset) => (asset.fileSize ?? 0) > 20 * 1024 * 1024)) { Alert.alert('이미지는 한 장당 20MB 이하만 선택할 수 있습니다.'); return; }
       for (const asset of result.assets) {
         if (!(asset.width > 0 && asset.height > 0)) throw new Error('이미지 크기를 확인하지 못했습니다.');
-        setImageSize({ width: Math.min(asset.width, 760), height: Math.min(asset.width, 760) * asset.height / asset.width });
+        placeholder = document.createElement('span');
+        placeholder.dataset.uploadPlaceholder = '';
+        placeholder.contentEditable = 'false';
+        placeholder.setAttribute('role', 'status');
+        placeholder.setAttribute('aria-label', '이미지 업로드 중');
+        placeholder.style.width = `${Math.min(asset.width, 760)}px`;
+        placeholder.style.aspectRatio = `${asset.width} / ${asset.height}`;
+        const block = getInsertionBlock(editor, position);
+        editor.insertBefore(placeholder, isEmptyParagraph(block) ? block : block?.nextSibling ?? null);
+        syncEditorEmpty(editor);
         const formData = new FormData();
         if (asset.file) formData.append('file', asset.file);
         else formData.append('file', { name: asset.fileName ?? `community-${Date.now()}.jpg`, type: asset.mimeType ?? 'image/jpeg', uri: asset.uri } as never);
         const uploaded = await uploadMobileApi<MobileCommunityUploadDto>('/api/mobile/v1/community/upload', formData);
-        insertMarkup(`<img src="${escapeHtml(uploaded.url)}" alt="">`);
+        if (placeholder.parentElement !== editor) return;
+        position = insertMarkup(`<img src="${escapeHtml(uploaded.url)}" alt="">`, { placeholder, block }) ?? null;
       }
     } catch (caught) { Alert.alert(caught instanceof Error ? caught.message : '이미지를 업로드하지 못했습니다.'); }
-    finally { setUploading(false); setImageSize(null); }
+    finally {
+      placeholder?.remove();
+      syncEditorEmpty(editor);
+      setUploading(false);
+    }
   };
 
   const insertLink = () => {
@@ -240,10 +270,10 @@ export function CommunityRichEditor({ allowEmbeds, allowMedia, characterCount, c
   const deletePoll = () => { if (poll.id) editorRef.current?.querySelector(`[data-poll-id="${CSS.escape(poll.id)}"]`)?.remove(); emit(); setPollOpen(false); setPoll(emptyPoll()); };
   const editPoll = (event: React.MouseEvent<HTMLDivElement>) => { const target = event.target as HTMLElement; const element = target.closest<HTMLElement>('[data-poll-id]'); if (!element) return; let options: PollOption[] = []; try { options = JSON.parse(element.dataset.pollOptions ?? '[]') as PollOption[]; } catch { /* Keep empty. */ } setPoll({ id: element.dataset.pollId ?? null, options: options.length ? options : emptyPoll().options, question: element.dataset.pollQuestion ?? '' }); setPollOpen(true); };
 
-  return <View onLayout={(event) => setEditorWidth(Math.max(0, event.nativeEvent.layout.width - 32))} style={styles.root}>
+  return <View style={styles.root}>
+    <style>{mediaUploadPlaceholderStyle({ accent: theme.accent, color: theme.text, muted: theme.muted, mutedSurface: theme.surfaceMuted })}</style>
     <style>{`.mobile-rich-editor{box-sizing:border-box;color:${theme.text};flex:1;font-family:Pretendard,sans-serif;font-size:16px;line-height:1.75;min-height:0;outline:none;overflow-y:auto;padding:16px 0 24px;position:relative;width:100%}.mobile-rich-editor[data-empty="true"]:before{color:${theme.muted};content:attr(data-placeholder);left:0;opacity:.72;pointer-events:none;position:absolute;top:16px}.mobile-rich-editor p{margin:0 0 8px}.mobile-rich-editor img{border-radius:8px;display:block;height:auto;margin:12px 0;max-width:100%}.mobile-media{border:1px solid ${theme.border};border-radius:12px;margin:12px 0;overflow:hidden}.mobile-youtube{aspect-ratio:16/9;background:#000;position:relative}.mobile-youtube iframe{border:0;height:100%;pointer-events:none;width:100%}.mobile-youtube>span{background:rgba(0,0,0,.68);bottom:8px;color:white;font-size:13px;left:8px;padding:4px 8px;position:absolute}.mobile-sns{background:${theme.surfaceMuted};display:flex;flex-direction:column;gap:4px;padding:14px}.mobile-sns>span{color:${theme.muted};font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mobile-poll{border:1px solid ${theme.border};border-radius:8px;display:flex;flex-direction:column;gap:8px;margin:14px 0;padding:12px}.mobile-poll-heading{margin-bottom:2px}.mobile-poll-heading b{color:${theme.ink};font-size:16px;line-height:24px}.mobile-poll-option{align-items:center;border:1px solid ${theme.border};border-radius:8px;display:flex;min-height:48px;padding:0 12px}.mobile-poll small{color:${theme.muted};font-size:13px;line-height:19px;text-align:right}`}</style>
     <div className="mobile-rich-editor" contentEditable data-placeholder="내용을 입력하세요" onBlur={rememberSelection} onClick={editPoll} onInput={emit} onKeyUp={rememberSelection} onMouseUp={rememberSelection} ref={editorRef} suppressContentEditableWarning />
-    {uploading && imageSize ? <View accessibilityLabel="이미지 업로드 중" accessibilityLiveRegion="polite" accessibilityRole="progressbar" pointerEvents="none" style={[styles.uploadPlaceholder, { backgroundColor: `${theme.muted}33`, height: undefined, right: undefined, width: Math.min(imageSize.width, editorWidth), aspectRatio: imageSize.width / imageSize.height }]}><ActivityIndicator color={theme.accent} size="large" /></View> : null}
     {formatOpen ? <View style={[styles.formatPanel, { backgroundColor: theme.surface, borderColor: theme.border }]}><Tool compact label="굵게" onPress={() => execute('bold')}><Bold color={theme.text} size={18} /></Tool><Tool compact label="기울임" onPress={() => execute('italic')}><Italic color={theme.text} size={18} /></Tool><Tool compact label="밑줄" onPress={() => execute('underline')}><Underline color={theme.text} size={18} /></Tool><Tool compact label="취소선" onPress={() => execute('strikeThrough')}><Strikethrough color={theme.text} size={18} /></Tool><View style={[styles.formatDivider, { backgroundColor: theme.border }]} /><Tool compact label="글머리 목록" onPress={() => execute('insertUnorderedList')}><List color={theme.text} size={18} /></Tool><Tool compact label="번호 목록" onPress={() => execute('insertOrderedList')}><ListOrdered color={theme.text} size={18} /></Tool><FormatColorTool color="#000000" label="글자색" onPress={() => setPalette('text')}><Type color={theme.text} size={16} /></FormatColorTool><FormatColorTool color="transparent" label="배경색" onPress={() => setPalette('highlight')}><Highlighter color={theme.text} size={16} /></FormatColorTool></View> : null}
     {miniconOpen ? <MiniconPicker bottom={60} doubleMode={false} onSelect={insertMinicon} packs={miniconPacks} selectedIds={[]} showDoubleMode={false} /> : null}
     <Text style={[styles.count, { color: characterCount > characterLimit ? '#ef4444' : theme.muted, ...fonts.regular }]}>{characterCount.toLocaleString('ko-KR')}/{characterLimit.toLocaleString('ko-KR')}자</Text>
@@ -258,4 +288,4 @@ function Tool({ active = false, children, compact = false, disabled, label, onPr
 
 function FormatColorTool({ children, color, label, onPress }: { children: React.ReactNode; color: string; label: string; onPress: () => void }) { const { theme } = useMinionTheme(); return <Pressable accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.formatColorTool, pressed ? { backgroundColor: theme.surfaceMuted } : null]}>{children}<View style={[styles.formatColorBar, { backgroundColor: color, borderColor: theme.border }]} /></Pressable>; }
 
-const styles = StyleSheet.create({ root: { flex: 1, marginHorizontal: -16, minHeight: 0, overflow: 'hidden', paddingHorizontal: 16, position: 'relative' }, uploadPlaceholder: { alignItems: 'center', borderRadius: 8, height: 200, justifyContent: 'center', left: 16, position: 'absolute', right: 16, top: 12, zIndex: 8 }, count: { flexShrink: 0, fontSize: 13, lineHeight: 19.5, paddingBottom: 4, textAlign: 'right' }, toolbar: { alignItems: 'center', borderBottomWidth: 1, borderTopWidth: 1, flexDirection: 'row', flexShrink: 0, height: 54, justifyContent: 'center', marginHorizontal: -16, paddingHorizontal: 7 }, tool: { alignItems: 'center', borderRadius: 10, height: 44, justifyContent: 'center', width: 44 }, divider: { height: 24, marginHorizontal: 3, width: 1 }, formatPanel: { bottom: 64, borderRadius: 16, borderWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4, left: 8, padding: 8, position: 'absolute', right: 8, zIndex: 10 }, formatTool: { alignItems: 'center', borderRadius: 8, height: 40, justifyContent: 'center', width: 40 }, formatDivider: { height: 24, marginHorizontal: 4, marginVertical: 8, width: 1 }, formatColorTool: { alignItems: 'center', borderRadius: 4, height: 40, justifyContent: 'center', width: 32 }, formatColorBar: { borderWidth: 1, height: 3, marginTop: 2, width: 14 }, palette: { flexDirection: 'row', gap: 12, }, swatch: { alignItems: 'center', borderRadius: 999, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 }, input: { borderRadius: 8, borderWidth: 1, fontSize: 14, height: 44, paddingHorizontal: 13 }, primary: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginTop: 10 }, label: { fontSize: 13, lineHeight: 19.5, marginBottom: 6 }, options: { gap: 8 }, optionRow: { alignItems: 'center', flexDirection: 'row', gap: 10 }, optionInput: { flex: 1 }, remove: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 }, add: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 7, height: 44, justifyContent: 'center', marginTop: 10 }, actions: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingTop: 12 }, delete: { justifyContent: 'center', minHeight: 44, minWidth: 80 }, save: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', minWidth: 80, paddingHorizontal: 18 } });
+const styles = StyleSheet.create({ root: { flex: 1, marginHorizontal: -16, minHeight: 0, overflow: 'hidden', paddingHorizontal: 16, position: 'relative' }, count: { flexShrink: 0, fontSize: 13, lineHeight: 19.5, paddingBottom: 4, textAlign: 'right' }, toolbar: { alignItems: 'center', borderBottomWidth: 1, borderTopWidth: 1, flexDirection: 'row', flexShrink: 0, height: 54, justifyContent: 'center', marginHorizontal: -16, paddingHorizontal: 7 }, tool: { alignItems: 'center', borderRadius: 10, height: 44, justifyContent: 'center', width: 44 }, divider: { height: 24, marginHorizontal: 3, width: 1 }, formatPanel: { bottom: 64, borderRadius: 16, borderWidth: 1, flexDirection: 'row', flexWrap: 'wrap', gap: 4, left: 8, padding: 8, position: 'absolute', right: 8, zIndex: 10 }, formatTool: { alignItems: 'center', borderRadius: 8, height: 40, justifyContent: 'center', width: 40 }, formatDivider: { height: 24, marginHorizontal: 4, marginVertical: 8, width: 1 }, formatColorTool: { alignItems: 'center', borderRadius: 4, height: 40, justifyContent: 'center', width: 32 }, formatColorBar: { borderWidth: 1, height: 3, marginTop: 2, width: 14 }, palette: { flexDirection: 'row', gap: 12, }, swatch: { alignItems: 'center', borderRadius: 999, borderWidth: 1, height: 44, justifyContent: 'center', width: 44 }, input: { borderRadius: 8, borderWidth: 1, fontSize: 14, height: 44, paddingHorizontal: 13 }, primary: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', marginTop: 10 }, label: { fontSize: 13, lineHeight: 19.5, marginBottom: 6 }, options: { gap: 8 }, optionRow: { alignItems: 'center', flexDirection: 'row', gap: 10 }, optionInput: { flex: 1 }, remove: { alignItems: 'center', height: 40, justifyContent: 'center', width: 40 }, add: { alignItems: 'center', borderRadius: 8, borderWidth: 1, flexDirection: 'row', gap: 7, height: 44, justifyContent: 'center', marginTop: 10 }, actions: { alignItems: 'center', borderTopWidth: 1, flexDirection: 'row', justifyContent: 'space-between', marginTop: 14, paddingTop: 12 }, delete: { justifyContent: 'center', minHeight: 44, minWidth: 80 }, save: { alignItems: 'center', borderRadius: 8, height: 44, justifyContent: 'center', minWidth: 80, paddingHorizontal: 18 } });
