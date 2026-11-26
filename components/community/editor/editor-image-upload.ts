@@ -1,5 +1,3 @@
-import type { Editor } from "@tiptap/react";
-
 import { COMMUNITY_UPLOAD_MAX_BYTES } from "@/lib/community/upload-security";
 
 const MAX_IMAGE_MB = 20;
@@ -115,34 +113,30 @@ async function uploadImage(file: File): Promise<{ url: string }> {
   return { url: body.url };
 }
 
-export async function uploadAndInsertEditorImage(params: { editor: Editor; file: File; onSize?: (size: { width: number; height: number }) => void }): Promise<void> {
-  const { editor } = params;
-  validateImageFile(params.file);
+type ReportSize = (size: { width: number; height: number }) => void;
 
-  const compressed = await compressImageFile(params.file);
+export async function uploadEditorImage(original: File, onSize: ReportSize) {
+  validateImageFile(original);
+
+  const compressed = await compressImageFile(original);
   const { file } = compressed;
   const { width, height } = compressed.width > 0 ? compressed : await getImageSize(file);
   if (width <= 0 || height <= 0) throw new Error("이미지 크기를 확인하지 못했습니다.");
-  params.onSize?.({ width: Math.min(width, 760), height: Math.min(width, 760) * height / width });
+  const initialWidth = Math.min(width, 760);
+  const initialHeight = Math.max(1, Math.round(initialWidth * height / width));
+  onSize({ width: initialWidth, height: initialHeight });
   const { url } = await uploadImage(file);
 
-  const initialWidth = width > 0 ? Math.min(width, 760) : 760;
-  const insertPosition = editor.state.selection.to;
-
-  editor
-    .chain()
-    .focus()
-    .insertContentAt(insertPosition, {
-      type: "imageResize",
-      attrs: {
-        src: url,
-        width: initialWidth,
-        height: Math.round(initialWidth * height / width),
-        containerStyle: `width: ${initialWidth}px; height: auto; cursor: pointer; margin: 0.5rem 0;`,
-        wrapperStyle: "display: flex; justify-content: flex-start; margin: 0;",
-      },
-    })
-    .run();
+  return {
+    type: "imageResize" as const,
+    attrs: {
+      src: url,
+      width: initialWidth,
+      height: initialHeight,
+      containerStyle: `width: ${initialWidth}px; height: auto; cursor: pointer; margin: 0.5rem 0;`,
+      wrapperStyle: "display: flex; justify-content: flex-start; margin: 0;",
+    },
+  };
 }
 
 const MAX_VIDEO_MB = 50;
@@ -189,19 +183,17 @@ function putWithProgress(url: string, file: File, onProgress?: (percent: number)
   });
 }
 
-export async function uploadAndInsertEditorVideo(params: {
-  editor: Editor;
-  file: File;
-  onSize?: (size: { width: number; height: number }) => void;
-  onProgress?: (percent: number) => void;
-}): Promise<void> {
-  const { editor, file } = params;
+export async function uploadEditorVideo(file: File, onSize: ReportSize, onProgress: (percent: number) => void) {
   if (!ALLOWED_VIDEO_TYPES.has(file.type)) throw new Error("MP4, WEBM, MOV 동영상만 첨부할 수 있습니다.");
   if (file.size <= 0 || file.size > MAX_VIDEO_BYTES) throw new Error(`동영상은 ${MAX_VIDEO_MB}MB 이하만 첨부할 수 있습니다.`);
 
   const { width, height } = await getVideoSize(file);
-  const previewWidth = width > 0 ? Math.min(width, 760) : 760;
-  params.onSize?.({ width: previewWidth, height: width > 0 && height > 0 ? previewWidth * height / width : previewWidth * 9 / 16 });
+  if (width > 0 && height > 0) {
+    const scale = Math.min(1, 640 / height);
+    onSize({ width: width * scale, height: height * scale });
+  } else {
+    onSize({ width: 760, height: 760 * 9 / 16 });
+  }
   const request = async (body: Record<string, unknown>) => {
     const response = await fetch("/api/community/upload/video", {
       method: "POST",
@@ -215,13 +207,9 @@ export async function uploadAndInsertEditorVideo(params: {
 
   const signed = await request({ action: "sign", contentType: file.type, size: file.size, width, height });
   if (!signed.signedUrl || !signed.path) throw new Error("동영상 업로드에 실패했습니다.");
-  params.onProgress?.(0);
-  await putWithProgress(signed.signedUrl, file, params.onProgress);
+  onProgress(0);
+  await putWithProgress(signed.signedUrl, file, onProgress);
   const { url } = await request({ action: "confirm", path: signed.path });
 
-  editor
-    .chain()
-    .focus()
-    .insertContentAt(editor.state.selection.to, { type: "video", attrs: { src: url } })
-    .run();
+  return { type: "video" as const, attrs: { src: url } };
 }

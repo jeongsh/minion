@@ -1,12 +1,13 @@
 "use client";
 
 import { useEditor, EditorContent } from "@tiptap/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import Toolbar from "./Toolbar";
 import { buildCommunityExtensions } from "./community-extensions";
 import { useEmbedHydration } from "./use-embed-hydration";
-import { MAX_EDITOR_VIDEOS, getImageUploadErrorMessage, isEditorVideoFile, uploadAndInsertEditorImage, uploadAndInsertEditorVideo } from "./editor-image-upload";
+import { MAX_EDITOR_VIDEOS, getImageUploadErrorMessage, isEditorVideoFile, uploadEditorImage, uploadEditorVideo } from "./editor-image-upload";
+import { MediaUploadPlaceholder, createMediaUploadPlaceholder, mediaInsertionPosition, mediaUploadKey } from "./media-upload-placeholder";
 import type { MiniconPack } from "@/lib/minicons/types";
 import { getPostImageLimitMessage, POST_IMAGE_MAX_COUNT } from "@/lib/community/limits";
 
@@ -21,17 +22,11 @@ interface Props {
 }
 
 export default function CommunityEditor({ content, onChange, allowMedia = true, allowEmbeds = allowMedia, maxImages = POST_IMAGE_MAX_COUNT, placeholder, miniconPacks = [] }: Props) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dropUploadRef = useRef(false);
-  const [uploadingDropImage, setUploadingDropImage] = useState(false);
-  const [uploadingToolbarImage, setUploadingToolbarImage] = useState(false);
-  const uploadingImage = uploadingDropImage || uploadingToolbarImage;
-  const [imageSize, setImageSize] = useState<{ width: number; height: number } | null>(null);
-  const [uploadProgress, setUploadProgress] = useState<number | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const editor = useEditor({
     immediatelyRender: false,
-    extensions: buildCommunityExtensions({ placeholder: placeholder ?? "내용을 입력하세요" }),
+    extensions: [...buildCommunityExtensions({ placeholder: placeholder ?? "내용을 입력하세요" }), MediaUploadPlaceholder],
     content: content,
     onUpdate: ({ editor }) => {
       onChange(JSON.stringify(editor.getJSON()));
@@ -40,29 +35,30 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
       attributes: {
         class: "community-prose max-w-none min-h-[calc(100svh-250px)] px-0 py-4 text-base leading-7 focus:outline-none md:min-h-[520px] md:py-3",
       },
-      handlePaste: (_view, event) => {
+      handlePaste: (view, event) => {
         if (!allowMedia || !editor) return false;
         const files = Array.from(event.clipboardData?.files ?? []).filter((file) => file.type.startsWith("image/"));
         if (files.length === 0) return false;
 
         event.preventDefault();
-        void uploadEditorMedia(files);
+        void uploadEditorMedia(files, view.state.selection.to);
         return true;
       },
-      handleDrop: (_view, event) => {
+      handleDrop: (view, event) => {
         if (!allowMedia || !editor) return false;
         const files = Array.from(event.dataTransfer?.files ?? []).filter((file) => file.type.startsWith("image/") || isEditorVideoFile(file));
         if (files.length === 0) return false;
 
         event.preventDefault();
-        void uploadEditorMedia(files);
+        const position = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+        void uploadEditorMedia(files, position ?? view.state.selection.to);
         return true;
       },
     },
   });
 
-  const uploadEditorMedia = async (files: File[]) => {
-    if (!editor || files.length === 0 || dropUploadRef.current || uploadingToolbarImage) return;
+  const uploadEditorMedia = async (files: File[], position: number) => {
+    if (!editor || files.length === 0 || mediaUploadKey.getState(editor.state)) return;
     if (!allowEmbeds && files.some(isEditorVideoFile)) {
       alert("동영상은 로그인 후 첨부할 수 있습니다.");
       return;
@@ -81,27 +77,48 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
     if (videoFiles.length > remainingVideos) alert(`동영상은 ${MAX_EDITOR_VIDEOS}개까지 첨부할 수 있습니다.`);
     const queue = new Set([...imageFiles.slice(0, remainingImages), ...videoFiles.slice(0, remainingVideos)]);
     if (queue.size === 0) return;
-    dropUploadRef.current = true;
-    setUploadingDropImage(true);
-    setImageSize(null);
-    setUploadProgress(null);
+    setUploadingImage(true);
     try {
       for (const file of files) {
         if (!queue.has(file)) continue;
-        if (isEditorVideoFile(file)) {
-          await uploadAndInsertEditorVideo({ editor, file, onSize: setImageSize, onProgress: setUploadProgress });
-          setUploadProgress(null);
-        } else {
-          await uploadAndInsertEditorImage({ editor, file, onSize: setImageSize });
-        }
+        const isVideo = isEditorVideoFile(file);
+        const type = isVideo ? "video" : "imageResize";
+        const preview = createMediaUploadPlaceholder();
+        editor.view.dispatch(editor.state.tr.setMeta(mediaUploadKey, { position, type }));
+        const onSize = (size: { width: number; height: number }) => {
+          const current = mediaUploadKey.getState(editor.state);
+          if (!current || editor.isDestroyed) return;
+          preview.setSize(size);
+          editor.view.dispatch(editor.state.tr.setMeta(mediaUploadKey, { ...current, placeholder: preview.element }));
+        };
+        const media = isVideo
+          ? await uploadEditorVideo(file, onSize, preview.setProgress)
+          : await uploadEditorImage(file, onSize);
+        const current = mediaUploadKey.getState(editor.state);
+        if (!current || editor.isDestroyed) return;
+
+        const selection = editor.state.selection;
+        const atUpload = selection.to === current.position;
+        const target = mediaInsertionPosition(editor.state.doc, current.position, editor.schema.nodes[type]);
+        const chain = editor.chain();
+        if (atUpload) chain.focus();
+        chain
+          .insertContentAt(target, media)
+          .command(({ tr }) => {
+            position = tr.selection.to;
+            if (!atUpload) tr.setSelection(selection.map(tr.doc, tr.mapping));
+            tr.setMeta(mediaUploadKey, { position, type });
+            return true;
+          })
+          .run();
       }
     } catch (error) {
       alert("업로드 실패: " + getImageUploadErrorMessage(error, "알 수 없는 오류"));
     } finally {
-      dropUploadRef.current = false;
-      setUploadingDropImage(false);
-      setImageSize(null);
-      setUploadProgress(null);
+      if (!editor.isDestroyed) {
+        editor.view.dispatch(editor.state.tr.setMeta(mediaUploadKey, null));
+        setUploadingImage(false);
+      }
     }
   };
 
@@ -125,12 +142,9 @@ export default function CommunityEditor({ content, onChange, allowMedia = true, 
   }, [content, editor]);
 
   return (
-    <div ref={containerRef} className="community-editor relative flex flex-col bg-transparent md:bg-[var(--ui-surface)]">
-      {uploadingImage && imageSize ? (
-        <div className="community-media-placeholder pointer-events-none my-3 max-w-full rounded-lg" style={{ width: imageSize.width, aspectRatio: imageSize.width / imageSize.height }} role="status" aria-label={uploadProgress === null ? "업로드 중" : `업로드 ${uploadProgress}%`}><span className="community-media-spinner" aria-hidden="true" />{uploadProgress !== null ? <span className="absolute inset-x-0 top-[calc(50%+22px)] text-center text-[13px] font-medium tabular-nums text-[var(--ui-text)]" aria-hidden="true">{uploadProgress}%</span> : null}</div>
-      ) : null}
+    <div className="community-editor relative flex flex-col bg-transparent md:bg-[var(--ui-surface)]">
       <EditorContent editor={editor} />
-      <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} miniconPacks={miniconPacks} onImageSize={setImageSize} onUploadProgress={setUploadProgress} onUploadingChange={(uploading) => { setUploadingToolbarImage(uploading); if (!uploading) setImageSize(null); }} />
+      <Toolbar editor={editor} allowEmbeds={allowEmbeds} allowMedia={allowMedia} maxImages={maxImages} miniconPacks={miniconPacks} uploadingImage={uploadingImage} onUpload={uploadEditorMedia} />
     </div>
   );
 }

@@ -11,6 +11,8 @@ import { useDismissOnOutside } from "@/components/ui/use-dismiss-on-outside";
 import { focusNotificationComment } from "@/components/notifications/notification-context";
 import type { AppNotification, NotificationKind } from "@/lib/notifications";
 
+type ReadNotification = (id: string) => Promise<void> | void;
+
 function NotificationTypeIcon({ kind }: { kind: NotificationKind }) {
   if (kind === "match_live" || kind === "match_event") return <Radio size={17} />;
   if (kind === "rating_open") return <Star size={17} />;
@@ -37,13 +39,12 @@ function NotificationRow({
   onClose,
 }: {
   notification: AppNotification;
-  onRead: (id: string) => Promise<void>;
+  onRead: ReadNotification;
   onRemove: (id: string) => void;
   onClose: () => void;
 }) {
   const router = useRouter();
-  const { href } = notification;
-  const isComment = notification.activityKind === "post_comment" || notification.activityKind === "comment_reply";
+  const { href, readAt } = notification;
   const eventImage = notification.matchEvent?.rightImageSrc ?? notification.matchEvent?.leftImageSrc;
   const imageUrl = notification.imageUrl ?? eventImage;
   const useObjectiveMask = Boolean(
@@ -89,23 +90,29 @@ function NotificationRow({
       {href ? (
         <Link
           href={href}
-          data-defer-ad-navigation={isComment && !notification.readAt ? "" : undefined}
+          data-defer-ad-navigation={!readAt ? "" : undefined}
           onClick={(event) => {
-            const read = notification.readAt ? undefined : onRead(notification.id);
+            const read = readAt ? undefined : onRead(notification.id);
             onClose();
             if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0) return;
             if (focusNotificationComment(href)) {
               event.preventDefault();
               return;
             }
-            const destination = event.currentTarget;
-            if (isComment && read && destination.origin === window.location.origin) {
-              // The destination can initialize its own inbox. Save before it loads.
-              event.preventDefault();
-              void read.then(() => {
-                if (!navigateFromAdDocument(href)) router.push(href);
-              });
-            }
+            if (readAt) return;
+
+            event.preventDefault();
+            const { href: destination, origin } = event.currentTarget;
+            const navigate = () => {
+              if (origin !== window.location.origin) {
+                window.location.assign(destination);
+              } else if (!navigateFromAdDocument(destination)) {
+                router.push(href);
+              }
+            };
+            // A document load can fetch the inbox again as soon as it starts.
+            if (read) void read.then(navigate);
+            else navigate();
           }}
           className="flex min-w-0 flex-1 items-start gap-2.5 rounded-md"
         >{content}</Link>
@@ -131,7 +138,7 @@ export function NotificationPanel({
   onClose: () => void;
   notifications: AppNotification[];
   unreadCount: number;
-  onRead: (id: string) => Promise<void>;
+  onRead: ReadNotification;
   onReadAll: () => void;
   onRemove: (id: string) => void;
   onClear: () => void;

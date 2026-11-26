@@ -247,7 +247,7 @@ export function useMatchActivity(
     });
   }, [dismissedLiveStorageKey]);
 
-  const markNotificationRead = useCallback(async (id: string) => {
+  const markNotificationRead = useCallback((id: string) => {
     if (isRemoteNotificationId(id)) {
       return communityNotifications.markRead(id);
     }

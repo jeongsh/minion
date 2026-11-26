@@ -87,9 +87,8 @@ export function AdDocumentBoundary() {
       if (!adDocumentUrl || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
       const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
       if (!(anchor instanceof HTMLAnchorElement) || anchor.hasAttribute("download") || (anchor.target && anchor.target !== "_self")) return;
-      // These links call navigateFromAdDocument after saving their state.
-      if (anchor.hasAttribute("data-defer-ad-navigation")) return;
-      if (!navigateFromAdDocument(anchor.href)) return;
+      // Let links that save state call navigateFromAdDocument once the save settles.
+      if (anchor.hasAttribute("data-defer-ad-navigation") || !navigateFromAdDocument(anchor.href)) return;
       event.preventDefault();
       event.stopPropagation();
     };
