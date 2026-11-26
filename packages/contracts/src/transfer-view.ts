@@ -1,4 +1,4 @@
-import { isUnconfirmedTransfer, latestPlayerEvents, lckTeamCode, normalizeTransferName, type TransferEvent, type TransferMarket, type TransferRoster } from "./transfers.ts";
+import { isUnconfirmedTransfer, latestPlayerEvents, lckTeamCode, marketEvents, normalizeTransferName, type TransferEvent, type TransferMarket, type TransferRoster } from "./transfers.ts";
 
 export function transferEventsInStorageOrder(moves: TransferEvent[], market: TransferMarket) {
   const order = new Map([...market.snapshot.events, ...market.manual_events].map((event, index) => [event.id, index]));
@@ -63,4 +63,60 @@ export function departuresForTeam(team: string, rosters: TransferRoster[], event
   const names = new Set(origin?.slots.flatMap((s) => s.previous.map((p) => normalizeTransferName(p.name))) ?? []);
   return latestPlayerEvents(events.filter((e) => !isUnconfirmedTransfer(e)))
     .filter((e) => e.kind !== "renew" && lckTeamCode(e.to) !== team && (lckTeamCode(e.from) === team || names.has(normalizeTransferName(e.player))));
+}
+
+export function transferRosterViews(market: TransferMarket, events = marketEvents(market)) {
+  const latest = latestPlayerEvents(events.filter((event) => !isUnconfirmedTransfer(event)));
+  const confirmedByPlayer = new Map(latest.map((event) => [normalizeTransferName(event.player), event]));
+  const reported = latestPlayerEvents(events.filter(isUnconfirmedTransfer)).filter((event) => {
+    const confirmed = confirmedByPlayer.get(normalizeTransferName(event.player));
+    return !confirmed || (confirmed.date ?? "") < (event.date ?? "");
+  });
+  const hiddenTags = new Set(market.hidden_roster_tags);
+
+  return resolveTransferRosters(market.snapshot.rosters, events, market.season).map(({ team, slots }) => {
+    const reports = reportedRosterChanges(team, reported, market.season);
+    const confirmedDepartures = departuresForTeam(team, market.snapshot.rosters, events);
+    const departureNames = new Set(confirmedDepartures.map((event) => normalizeTransferName(event.player)));
+    const departures = [...confirmedDepartures, ...reports.departures.filter((event) => !departureNames.has(normalizeTransferName(event.player)))];
+    const nextNames = new Set(slots.flatMap((slot) => slot.next.map((person) => normalizeTransferName(person.name))));
+    const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === team && isTransferArrival(event, team) && nextNames.has(normalizeTransferName(event.player)));
+    const arrivalsByPlayer = new Map(confirmedArrivals.map((event) => [normalizeTransferName(event.player), event]));
+    const renewalsByPlayer = new Map(latest.filter((event) => event.kind === "renew" && lckTeamCode(event.to || event.from) === team)
+      .map((event) => [normalizeTransferName(event.player), event]));
+    const rosterReports = reports.arrivals.filter((event) => !arrivalsByPlayer.has(normalizeTransferName(event.player)));
+
+    return {
+      team,
+      arrivals: [...confirmedArrivals, ...rosterReports.filter((event) => event.kind !== "renew")],
+      departures,
+      slots: slots.map((slot) => {
+        const slotReports = rosterReports.filter((event) => event.role === slot.role);
+        const slotNames = new Set(slot.next.map((person) => normalizeTransferName(person.name)));
+        const next = [
+          ...slot.next.filter((person) => !reports.leaving.has(normalizeTransferName(person.name))),
+          ...slotReports.filter((event) => !slotNames.has(normalizeTransferName(event.player))).map((event) => ({ name: event.player, realName: event.realName, wikiUrl: "" })),
+        ];
+        return {
+          ...slot,
+          next: next.map((person) => {
+            const name = normalizeTransferName(person.name);
+            const report = slotReports.find((event) => normalizeTransferName(event.player) === name);
+            const arrival = arrivalsByPlayer.get(name);
+            const event = report ?? arrival ?? renewalsByPlayer.get(name);
+            if (!event) return { person, tag: null };
+            const label = report ? (report.provenance === "rumor" ? "루머" : "거피셜") : arrival ? "합류" : "재계약";
+            const key = JSON.stringify([team, slot.role, name, label, event.id]);
+            return { person, tag: { key, label, event, hidden: label !== "루머" && hiddenTags.has(key) } };
+          }),
+        };
+      }),
+    };
+  });
+}
+
+export function manageableRosterTags(market: TransferMarket) {
+  return transferRosterViews(market).flatMap(({ team, slots }) => slots.flatMap(({ next }) => next.flatMap(({ person, tag }) =>
+    tag && tag.label !== "루머" ? [{ ...tag, team, person }] : [],
+  )));
 }

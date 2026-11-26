@@ -17,7 +17,7 @@ import { minionSize } from '@/constants/minion-theme';
 import { resolveApiAssetUrl, type MobileTeamsPageDto } from '@/lib/api-client';
 import { useAuth } from '@/providers/auth-provider';
 import type { MobileTransfersDto } from '../../../packages/contracts/src/mobile-v1';
-import { departuresForTeam, isTransferArrival, reportedRosterChanges, resolveTransferRosters, transferEventsInStorageOrder } from '../../../packages/contracts/src/transfer-view';
+import { transferEventsInStorageOrder, transferRosterViews } from '../../../packages/contracts/src/transfer-view';
 import { isUnconfirmedTransfer, transferArticleUrl, latestPlayerEvents, lckTeamCode, marketEvents, movementCategory, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferRole } from '../../../packages/contracts/src/transfers';
 
 const ROLE_ICONS: Record<string, string> = { TOP: 'top', JGL: 'jungle', MID: 'middle', BOT: 'bottom', SUP: 'utility' };
@@ -56,13 +56,12 @@ function TransferMarketView({ data, followedTeamIds }: { data: MobileTransfersDt
   const [reports, setReports] = useState(true);
   const allEvents = useMemo(() => marketEvents(market), [market]);
   const events = allEvents.filter((event) => reports || !isUnconfirmedTransfer(event));
-  const rosters = useMemo(() => resolveTransferRosters(market.snapshot.rosters, allEvents, market.season), [market, allEvents]);
+  const rosters = useMemo(() => transferRosterViews(market, allEvents), [market, allEvents]);
   const teams = new Map(data.teams.flatMap((team) => { const code = lckTeamCode(team.shortName); return code ? [[code, team] as const] : []; }));
   const teamNames = new Map(data.teams.flatMap((team) => [team.name, team.shortName, team.slug].map((name) => [normalizeTransferName(name), team] as const)));
   const isFollowed = (code: string) => { const team = teams.get(code); return team && (followedTeamIds.includes(team.id) || followedTeamIds.includes(team.fanSiteHost)); };
   const ordered = [...rosters].sort((a, b) => Number(Boolean(isFollowed(b.team))) - Number(Boolean(isFollowed(a.team))));
   const latest = latestPlayerEvents(events.filter((event) => !isUnconfirmedTransfer(event)));
-  const reported = latestPlayerEvents(allEvents.filter((event) => isUnconfirmedTransfer(event))).filter((report) => !latest.some((confirmed) => normalizeTransferName(confirmed.player) === normalizeTransferName(report.player) && (confirmed.date ?? '') >= (report.date ?? '')));
   const freeAgents = latest.filter((event) => event.kind === 'leave' && !event.to);
   const keyword = normalizeTransferName(query);
   const matchesTeam = (event: TransferEvent) => teamFilter === 'all' || lckTeamCode(event.from) === teamFilter || lckTeamCode(event.to) === teamFilter || market.snapshot.rosters.find((roster) => roster.team === teamFilter)?.slots.some((slot) => slot.previous.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player)));
@@ -104,18 +103,23 @@ function TransferMarketView({ data, followedTeamIds }: { data: MobileTransfersDt
     </View></View>
     {tab === 'rosters' ? <View style={{ gap: 20 }}>{ordered.filter((roster) => teamFilter === 'all' || teamFilter === roster.team).map((roster) => {
       const team = teams.get(roster.team);
-      const reportedChanges = reportedRosterChanges(roster.team, reported, market.season);
-      const confirmedDepartures = departuresForTeam(roster.team, market.snapshot.rosters, allEvents);
-      const departures = [...confirmedDepartures, ...reportedChanges.departures.filter((event) => !confirmedDepartures.some((confirmed) => normalizeTransferName(confirmed.player) === normalizeTransferName(event.player)))];
-      const confirmedArrivals = latest.filter((event) => lckTeamCode(event.to) === roster.team && isTransferArrival(event, roster.team) && roster.slots.some((slot) => slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))));
-      const arrivalNames = new Set(confirmedArrivals.map((event) => normalizeTransferName(event.player)));
-      const arrivals = [...confirmedArrivals, ...reportedChanges.arrivals.filter((event) => event.kind !== 'renew' && !arrivalNames.has(normalizeTransferName(event.player)))];
-      const rosterReports = reportedChanges.arrivals.filter((event) => !arrivalNames.has(normalizeTransferName(event.player)));
+      const { arrivals, departures } = roster;
       return <View key={roster.team} style={[styles.roster, { backgroundColor: theme.border }]}><View style={{ backgroundColor: colorScheme === 'dark' ? theme.card : theme.surface }}><View style={[styles.rosterHeader, width < 768 && { height: 40 }, { backgroundColor: theme.card, borderBottomColor: theme.divider }]}><TeamLogo plain size={width < 768 ? 20 : 28} team={team} themeAware /><Text style={{ color: theme.ink, ...(width < 768 ? fonts.medium : fonts.bold), fontSize: width < 768 ? 14 : 16, lineHeight: 20 }}>{roster.team === 'DNS' ? 'DN SOOPers' : team?.name ?? roster.team}</Text></View>
         {[...roster.slots.filter((slot) => slot.role !== 'COACH'), ...roster.slots.filter((slot) => slot.role === 'COACH')].map((slot, index) => {
-          const slotReports = rosterReports.filter((event) => event.role === slot.role);
-          const next = [...slot.next.filter((person) => !reportedChanges.leaving.has(normalizeTransferName(person.name))), ...slotReports.filter((event) => !slot.next.some((person) => normalizeTransferName(person.name) === normalizeTransferName(event.player))).map((event) => ({ name: event.player }))];
-          return <View key={slot.role} style={[styles.slot, width < 768 && { minHeight: 40 }, { borderBottomColor: theme.divider, borderBottomWidth: colorScheme === 'dark' ? 0 : 1, backgroundColor: colorScheme === 'dark' && index % 2 === 0 ? theme.cardHover : undefined }]}><RoleIcon role={slot.role} /><View style={styles.flex}>{slot.previous.map((person) => <View key={person.name}>{playerName(person.name, true)}</View>)}</View>{arrow()}<View style={[styles.flex, { alignItems: 'flex-end' }]}>{next.length ? next.map((person) => <View key={person.name} style={styles.teamName}>{slotReports.some((event) => normalizeTransferName(event.player) === normalizeTransferName(person.name)) ? reportBadge(slotReports.find((event) => normalizeTransferName(event.player) === normalizeTransferName(person.name))!) : arrivalNames.has(normalizeTransferName(person.name)) ? <Text style={{ color: theme.accent, ...fonts.medium, fontSize: 13 }}>합류</Text> : null}{playerName(person.name)}</View>) : <Text accessibilityLabel="미발표" style={{ color: theme.muted, ...fonts.medium, fontSize: 16 }}>—</Text>}</View></View>; })}
+          return <View key={slot.role} style={[styles.slot, width < 768 && { minHeight: 40 }, { borderBottomColor: theme.divider, borderBottomWidth: colorScheme === 'dark' ? 0 : 1, backgroundColor: colorScheme === 'dark' && index % 2 === 0 ? theme.cardHover : undefined }]}>
+            <RoleIcon role={slot.role} />
+            <View style={styles.flex}>{slot.previous.map((person) => <View key={person.name}>{playerName(person.name, true)}</View>)}</View>
+            {arrow()}
+            <View style={[styles.flex, { alignItems: 'flex-end' }]}>
+              {slot.next.length ? slot.next.map(({ person, tag }) => <View key={person.name} style={[styles.teamName, styles.rosterPlayer]}>
+                {tag && !tag.hidden && <View style={{ flexShrink: 0 }}>
+                  {isUnconfirmedTransfer(tag.event) ? reportBadge(tag.event) : <Text style={{ color: theme.accent, ...fonts.regular, fontSize: 13, lineHeight: 20 }}>{tag.label}</Text>}
+                </View>}
+                <View style={{ maxWidth: '100%' }}>{playerName(person.name)}</View>
+              </View>) : <Text accessibilityLabel="미발표" style={{ color: theme.muted, ...fonts.medium, fontSize: 16 }}>—</Text>}
+            </View>
+          </View>;
+        })}
       </View><View style={{ gap: 1 }}>{movementSummary('합류', arrivals, true, roster.team)}{movementSummary('이탈', departures, false, roster.team)}</View></View>;
     })}</View> : <View>
       {visibleEvents.length ? visibleEvents.map((event) => <View key={event.id} accessibilityLabel={`${event.player} ${TRANSFER_KIND_LABELS[event.kind]} ${event.from || '이전 팀 미정'}에서 ${destination(event)}${event.date ? `, ${event.date}` : ''}`} style={[styles.eventRow, width < 768 && { minHeight: 40, paddingVertical: 8 }, { borderBottomColor: theme.divider }]}><View style={{ maxWidth: 100 }}>{playerName(event.player, false, event)}</View>{isUnconfirmedTransfer(event) ? reportBadge(event) : null}<Text style={[styles.badge, { backgroundColor: theme.card, color: theme.ink, ...fonts.medium }]}>{TRANSFER_KIND_LABELS[event.kind]}</Text><View style={[styles.teamName, styles.flex]}>{teamName(event.from || '미정', true, width - 32 < 480)}{event.kind !== 'renew' ? <>{arrow()}{teamName(destination(event), true, width - 32 < 480)}</> : null}</View><Text style={{ color: theme.muted, ...fonts.regular, fontSize: 13 }}>{event.contractUntil?.replaceAll('-', '.')}</Text></View>) : <Text style={[styles.empty, { backgroundColor: theme.card, color: theme.muted, ...fonts.regular }]}>{tab === 'fa' ? '확인된 FA 선수가 없습니다.' : '조건에 맞는 변동 소식이 없습니다.'}</Text>}
@@ -136,6 +140,7 @@ const styles = StyleSheet.create({
   content: { gap: 0, paddingTop: 4, paddingBottom: 64 }, title: { marginBottom: 12 },
   mb16: { marginBottom: 16 }, flex: { flex: 1, minWidth: 0 }, teamName: { flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 },
   recent: { flexDirection: 'row', alignItems: 'center', flexWrap: 'nowrap', flexShrink: 0, gap: 12, minHeight: 44, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  rosterPlayer: { maxWidth: '100%', flexWrap: 'wrap', justifyContent: 'flex-end' },
   badge: { borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2, fontSize: 13, lineHeight: 20 },
   controls: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 16, zIndex: 30 },
   tabs: { height: minionSize.control, flexDirection: 'row', alignSelf: 'flex-start', borderRadius: 8, padding: 3, gap: 2 }, tab: { height: minionSize.control - 6, justifyContent: 'center', paddingHorizontal: 14, borderWidth: 1, borderColor: 'transparent', borderRadius: 8 },

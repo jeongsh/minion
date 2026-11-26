@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState, useTransition } from "react";
+import { useId, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { FilterDropdown } from "@/components/match-filter-dropdown";
@@ -8,9 +8,11 @@ import { Input } from "@/components/ui/input";
 import { dialogBodyClassName, ControlledDialog, DialogSheetHeader } from "@/components/responsive/adaptive-dialog";
 import { SearchInput } from "@/components/ui/search-input";
 import { Button } from "@/components/ui/button";
+import { SectionHeading } from "@/components/ui/section-heading";
 import type { Player } from "@/lib/types";
 import { findTransferTeam, marketEvents, namuTransferUrl, normalizeTransferName, TRANSFER_KIND_LABELS, TRANSFER_ROLES, type TransferEvent, type TransferMarket, type TransferTeam } from "@/lib/transfers/types";
-import { importTransferPlayerAction, removeTransferOverrideAction, saveTransferEventAction, setTransferAutoSyncAction, syncTransfersAction } from "./actions";
+import { manageableRosterTags } from "@/lib/transfers/view";
+import { importTransferPlayerAction, removeTransferOverrideAction, saveTransferEventAction, setRosterTagVisibilityAction, setTransferAutoSyncAction, syncTransfersAction } from "./actions";
 
 const buttonClass = "min-h-10 rounded-lg bg-[var(--ui-card-bg)] px-3 py-2 text-sm font-medium disabled:opacity-50";
 
@@ -52,6 +54,7 @@ export function TransferManager({ market, season, teams, players }: { market: Tr
     </section>
     {message && <p role={failed ? "alert" : "status"} className={`rounded-lg px-4 py-3 text-base font-normal ${failed ? "bg-red-500/10 text-red-700 dark:text-red-300" : "bg-[var(--ui-card-bg)]"}`}>{message}</p>}
     {market && <>
+      <RosterTagSettings market={market} pending={pending} run={run} />
       <TransferEventForm season={season} teams={teams} players={players} />
       <ControlledDialog open={!!editing} onClose={() => setEditing(null)} labelledBy={editTitleId}>
         <DialogSheetHeader title="변동 기록 수정" titleId={editTitleId} onClose={() => setEditing(null)} />
@@ -62,6 +65,51 @@ export function TransferManager({ market, season, teams, players }: { market: Tr
       <section><div className="mb-3 flex flex-wrap items-center justify-between gap-3"><h2 className="home-section-title text-xl font-normal">등록된 변동</h2><SearchInput aria-label="등록된 변동 선수 검색" placeholder="선수 이름 검색" value={search} onChange={(event) => setSearch(event.target.value)} containerClassName="basis-full sm:basis-auto sm:max-w-xs" /></div><div className="divide-y divide-[var(--ui-card-divider)]">{filteredEvents.map((event) => <article key={event.id} className="flex flex-wrap items-center justify-between gap-3 py-4"><div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="text-base font-bold">{event.player}</span><span className="text-sm font-medium">{TRANSFER_KIND_LABELS[event.kind]}</span><span className="text-[13px] font-normal text-[var(--ui-muted)]">{event.provenance === "official" ? "공식" : event.provenance === "report" ? "거피셜" : event.provenance === "rumor" ? "루머" : "나무위키"}</span></div><p className="mt-1 text-sm font-normal text-[var(--ui-muted)]">{event.date ?? "날짜 미상"} / {event.from}{event.to && event.from !== event.to ? ` → ${event.to}` : ""}</p></div><div className="flex flex-wrap gap-2"><button type="button" className={buttonClass} disabled={pending} onClick={() => setEditing(event)}>수정</button>{market.manual_events.some((e) => e.id === event.id) && <button type="button" className={buttonClass} disabled={pending} onClick={() => run(async () => { const result = await removeTransferOverrideAction(season, event.id); if (result.error) throw new Error(result.error); if (editing?.id === event.id) setEditing(null); return "수동 기록을 제거했습니다. 원문 기록이 있으면 다시 표시됩니다."; })}>{event.id.startsWith("wiki:") ? "원문으로 복원" : "삭제"}</button>}</div></article>)}</div>{!filteredEvents.length && <p className="text-base font-normal text-[var(--ui-muted)]">{query ? "검색 결과가 없습니다." : "등록된 변동이 없습니다."}</p>}</section>
     </>}
   </div>;
+}
+
+function RosterTagSettings({ market, pending, run }: {
+  market: TransferMarket;
+  pending: boolean;
+  run: (task: () => Promise<string>) => void;
+}) {
+  const [search, setSearch] = useState("");
+  const tags = useMemo(() => manageableRosterTags(market), [market]);
+  const query = normalizeTransferName(search);
+  const matches = tags.filter(({ person, team, label }) =>
+    [person.name, person.realName, team, label].some((value) => normalizeTransferName(value).includes(query)),
+  );
+
+  function changeVisibility(key: string | null, visible: boolean) {
+    run(async () => {
+      await setRosterTagVisibilityAction(market.season, key, visible);
+      return visible ? "로스터 태그를 표시했습니다." : "로스터 태그를 숨겼습니다.";
+    });
+  }
+
+  return <section aria-label="팀별 로스터 태그">
+    <SectionHeading>팀별 로스터 태그</SectionHeading>
+    {tags.length ? <>
+      <div className="flex flex-wrap gap-2">
+        <Button variant="secondary" disabled={pending || tags.every((tag) => tag.hidden)} onClick={() => changeVisibility(null, false)}>전체 숨기기</Button>
+        <Button variant="secondary" disabled={pending || tags.every((tag) => !tag.hidden)} onClick={() => changeVisibility(null, true)}>전체 표시</Button>
+      </div>
+      <details className="mt-2">
+        <summary className="text-sm font-medium min-h-10 cursor-pointer py-2.5">선수별 태그 설정</summary>
+        <SearchInput aria-label="로스터 태그 검색" placeholder="선수 이름 또는 팀 검색" value={search} onChange={(event) => setSearch(event.target.value)} containerClassName="my-2 sm:max-w-xs" />
+        <ul className="divide-y divide-[var(--ui-card-divider)]">
+          {matches.map(({ key, label, team, person, hidden }) => <li key={key}>
+            <label className="flex min-h-11 cursor-pointer items-center gap-3 py-2">
+              <input type="checkbox" checked={!hidden} disabled={pending} onChange={(event) => changeVisibility(key, event.target.checked)} className="size-4 shrink-0 accent-[var(--accent)]" />
+              <span className="text-[15px] font-bold min-w-0 break-words">{person.name}</span>
+              <span className="text-[13px] leading-5 text-[var(--ui-muted)]">{team}</span>
+              <span className="text-[13px] leading-5 shrink-0 text-[var(--ui-muted)]">{label}</span>
+            </label>
+          </li>)}
+        </ul>
+        {!matches.length && <p className="text-sm leading-6 md:text-base py-2 text-[var(--ui-muted)]">검색 결과가 없습니다.</p>}
+      </details>
+    </> : <p className="text-sm leading-6 md:text-base text-[var(--ui-muted)]">설정할 로스터 태그가 없습니다.</p>}
+  </section>;
 }
 
 function TransferEventForm({ editing = null, season, teams, players, onSaved }: {

@@ -25,6 +25,7 @@ export type TransferSnapshot = {
 };
 export type TransferMarket = {
   season: number; snapshot: TransferSnapshot; manual_events: TransferEvent[];
+  hidden_roster_tags?: string[];
   content_hash: string; checked_at: string; synced_at: string; auto_sync: boolean;
 };
 
