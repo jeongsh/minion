@@ -24,11 +24,11 @@ export function BrandLogo({
         maskImage: 'url("/logo.svg")',
         maskPosition: "center",
         maskRepeat: "no-repeat",
-        maskSize: "contain",
+        maskSize: "100% auto",
         WebkitMaskImage: 'url("/logo.svg")',
         WebkitMaskPosition: "center",
         WebkitMaskRepeat: "no-repeat",
-        WebkitMaskSize: "contain",
+        WebkitMaskSize: "100% auto",
       }}
     />
   );
